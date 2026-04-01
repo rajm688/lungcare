@@ -83,95 +83,111 @@ exports.sendReminders = functionsV1.pubsub
     const reminder = SCHEDULE[key];
     if (!reminder) return null;
 
-    const doc = await db.collection('devices').doc('default').get();
-    if (!doc.exists || !doc.data().token) {
-      console.log('No FCM token found');
+    const snapshot = await db.collection('devices').get();
+    if (snapshot.empty) {
+      console.log('No FCM tokens found');
       return null;
     }
 
+    const sendPromises = snapshot.docs.map(async (doc) => {
+      const token = doc.data().token;
+      if (!token) return;
+
+      try {
+        await messaging.send({
+          token,
+          notification: {
+            title: reminder.title,
+            body: reminder.body
+          },
+          data: {
+            tag: 'lungcare-' + key.replace(':', ''),
+            click_action: './'
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              sound: 'default',
+              channelId: 'lungcare-reminders',
+              icon: 'ic_notification'
+            }
+          },
+          webpush: {
+            notification: {
+              icon: 'https://lungcare-721be.web.app/icons/icon-192.svg',
+              badge: 'https://lungcare-721be.web.app/icons/icon-192.svg',
+              vibrate: [200, 100, 200]
+            },
+            fcmOptions: {
+              link: './'
+            }
+          }
+        });
+        console.log(`Sent reminder to ${doc.id}: ${key} - ${reminder.title}`);
+      } catch (err) {
+        console.error(`FCM send error for ${doc.id}:`, err.code, err.message);
+        if (
+          err.code === 'messaging/registration-token-not-registered' ||
+          err.code === 'messaging/invalid-registration-token'
+        ) {
+          await doc.ref.delete();
+          console.log(`Deleted invalid token: ${doc.id}`);
+        }
+      }
+    });
+
+    await Promise.all(sendPromises);
+    return null;
+  });
+
+// Callable function to send a test push notification (Gen 2)
+exports.sendTestNotification = onCall(async (request) => {
+  const snapshot = await db.collection('devices').get();
+  if (snapshot.empty) {
+    throw new HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
+  }
+
+  let sent = 0;
+  const errors = [];
+
+  await Promise.all(snapshot.docs.map(async (doc) => {
     const token = doc.data().token;
+    if (!token) return;
 
     try {
       await messaging.send({
         token,
         notification: {
-          title: reminder.title,
-          body: reminder.body
+          title: 'LungCare \u2014 Test',
+          body: 'Firebase notifications are working! You\u2019ll receive 15 daily reminders.'
         },
         data: {
-          tag: 'lungcare-' + key.replace(':', ''),
-          click_action: './'
-        },
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default',
-            channelId: 'lungcare-reminders',
-            icon: 'ic_notification'
-          }
+          tag: 'lungcare-test'
         },
         webpush: {
           notification: {
             icon: 'https://lungcare-721be.web.app/icons/icon-192.svg',
             badge: 'https://lungcare-721be.web.app/icons/icon-192.svg',
             vibrate: [200, 100, 200]
-          },
-          fcmOptions: {
-            link: './'
           }
         }
       });
-      console.log(`Sent reminder: ${key} - ${reminder.title}`);
+      sent++;
     } catch (err) {
-      console.error('FCM send error:', err.code, err.message);
       if (
         err.code === 'messaging/registration-token-not-registered' ||
         err.code === 'messaging/invalid-registration-token'
       ) {
-        await db.collection('devices').doc('default').delete();
-        console.log('Deleted invalid token');
+        await doc.ref.delete();
+        console.log(`Deleted invalid token: ${doc.id}`);
+      } else {
+        errors.push(err.message);
       }
     }
+  }));
 
-    return null;
-  });
-
-// Callable function to send a test push notification (Gen 2)
-exports.sendTestNotification = onCall(async (request) => {
-  const doc = await db.collection('devices').doc('default').get();
-  if (!doc.exists || !doc.data().token) {
-    throw new HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
+  if (sent === 0 && errors.length > 0) {
+    throw new HttpsError('internal', 'Send failed: ' + errors.join('; '));
   }
-
-  const token = doc.data().token;
-
-  try {
-    await messaging.send({
-      token,
-      notification: {
-        title: 'LungCare \u2014 Test',
-        body: 'Firebase notifications are working! You\u2019ll receive 15 daily reminders.'
-      },
-      data: {
-        tag: 'lungcare-test'
-      },
-      webpush: {
-        notification: {
-          icon: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-          badge: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-          vibrate: [200, 100, 200]
-        }
-      }
-    });
-    return { success: true };
-  } catch (err) {
-    if (
-      err.code === 'messaging/registration-token-not-registered' ||
-      err.code === 'messaging/invalid-registration-token'
-    ) {
-      await db.collection('devices').doc('default').delete();
-      throw new HttpsError('failed-precondition', 'Token expired. Please toggle notifications off and on again.');
-    }
-    throw new HttpsError('internal', 'Send failed: ' + err.message);
-  }
+  return { success: true, deviceCount: sent };
 });

@@ -1496,19 +1496,31 @@ function moodCalNext() {
   renderMoodCalendar();
 }
 
-/* ── FCM Notifications ── */
+/* ── FCM Notifications (multi-device) ── */
+function getDeviceId() {
+  let id = localStorage.getItem('lc_device_id');
+  if (!id) {
+    id = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    localStorage.setItem('lc_device_id', id);
+  }
+  return id;
+}
+
 function isNotifEnabled() {
   return localStorage.getItem('lc_fcm_enabled') === '1';
 }
 
 async function toggleNotifications() {
+  const deviceId = getDeviceId();
   if (isNotifEnabled()) {
     // Disable
     try {
       await fbMessaging.deleteToken();
     } catch {}
     try {
-      await fsDb.collection('devices').doc('default').delete();
+      await fsDb.collection('devices').doc(deviceId).delete();
     } catch {}
     localStorage.removeItem('lc_fcm_enabled');
   } else {
@@ -1523,7 +1535,7 @@ async function toggleNotifications() {
       const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
       await fsDb
         .collection('devices')
-        .doc('default')
+        .doc(deviceId)
         .set({ token, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       localStorage.setItem('lc_fcm_enabled', '1');
       document.getElementById('notif-status').textContent =
@@ -1548,11 +1560,12 @@ function updateNotifToggle() {
 async function refreshFCMToken() {
   if (!isNotifEnabled()) return;
   try {
+    const deviceId = getDeviceId();
     const reg = await navigator.serviceWorker.getRegistration();
     const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     await fsDb
       .collection('devices')
-      .doc('default')
+      .doc(deviceId)
       .set({ token, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   } catch (e) {
     console.warn('FCM refresh:', e);
