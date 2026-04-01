@@ -23,169 +23,62 @@ const VAPID_KEY = 'BMaJO5Tsl5xqnq2N4YjTjiezRER6IItjkhIwNhsJeIb6Fpk8_fUCWzeBvtNUN
 firebase.initializeApp(FIREBASE_CONFIG);
 const fsDb = firebase.firestore();
 const fbMessaging = firebase.messaging();
+const fbAuth = firebase.auth();
+let currentUid = null;
 
 /* ── Auth ── */
 const Auth = {
-  pin: '',
-  mode: 'verify',
-  setupPin: '',
-  get attempts() {
-    return parseInt(localStorage.getItem('lc_auth_attempts') || '0');
-  },
-  set attempts(v) {
-    localStorage.setItem('lc_auth_attempts', String(v));
-  },
-  get lockoutUntil() {
-    return parseInt(localStorage.getItem('lc_auth_lockout') || '0');
-  },
-  set lockoutUntil(v) {
-    localStorage.setItem('lc_auth_lockout', String(v));
-  },
-  isLockedOut() {
-    if (Date.now() < this.lockoutUntil) return true;
-    if (this.lockoutUntil > 0) {
-      this.attempts = 0;
-      this.lockoutUntil = 0;
-    }
-    return false;
-  },
-  getSalt() {
-    let s = localStorage.getItem('lc_pin_salt');
-    if (!s) {
-      s = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-      localStorage.setItem('lc_pin_salt', s);
-    }
-    return s;
-  },
-  async hashPin(p) {
-    const salt = this.getSalt();
-    const d = new TextEncoder().encode(salt + p);
-    const h = await crypto.subtle.digest('SHA-256', d);
-    return Array.from(new Uint8Array(h))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  },
-  async hashPinLegacy(p) {
-    const d = new TextEncoder().encode('lungcare_' + p);
-    const h = await crypto.subtle.digest('SHA-256', d);
-    return Array.from(new Uint8Array(h))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  },
-  hasPin() {
-    return !!localStorage.getItem('lc_pin_hash');
-  },
-  async checkPin(p) {
-    const stored = localStorage.getItem('lc_pin_hash');
-    if (localStorage.getItem('lc_pin_salt')) return (await this.hashPin(p)) === stored;
-    if ((await this.hashPinLegacy(p)) === stored) {
-      await this.savePin(p);
-      return true;
-    }
-    return false;
-  },
-  async savePin(p) {
-    this.getSalt();
-    localStorage.setItem('lc_pin_hash', await this.hashPin(p));
-  },
-  hasBiometric() {
-    return !!localStorage.getItem('lc_bio_cred');
-  },
-  async canUseBiometric() {
-    if (!window.PublicKeyCredential) return false;
-    try {
-      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    } catch {
-      return false;
-    }
-  },
-  async registerBiometric() {
-    try {
-      const c = await navigator.credentials.create({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          rp: { name: 'LungCare', id: location.hostname || 'localhost' },
-          user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'lungcare-user', displayName: 'LungCare User' },
-          pubKeyCredParams: [
-            { alg: -7, type: 'public-key' },
-            { alg: -257, type: 'public-key' }
-          ],
-          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-          timeout: 60000
-        }
-      });
-      localStorage.setItem('lc_bio_cred', btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
-      return true;
-    } catch (e) {
-      console.warn('Bio register:', e);
-      return false;
-    }
-  },
-  async verifyBiometric() {
-    try {
-      const id = localStorage.getItem('lc_bio_cred');
-      if (!id) return false;
-      await navigator.credentials.get({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          allowCredentials: [
-            { id: Uint8Array.from(atob(id), (c) => c.charCodeAt(0)), type: 'public-key', transports: ['internal'] }
-          ],
-          userVerification: 'required',
-          timeout: 60000
-        }
-      });
-      return true;
-    } catch (e) {
-      console.warn('Bio verify:', e);
-      return false;
-    }
-  },
-  async initAuth() {
-    const bk = document.getElementById('bio-key');
-    const cb = await this.canUseBiometric();
-    if (!this.hasPin()) {
-      this.mode = 'setup';
-      document.getElementById('auth-subtitle').textContent = 'Set up your PIN';
-      document.getElementById('auth-label').textContent = 'Choose a 4-digit PIN';
-      document.getElementById('auth-setup-info').textContent =
-        'This PIN protects your health data. Remember it \u2014 there is no recovery option.';
-    } else {
-      this.mode = 'verify';
-      document.getElementById('auth-subtitle').textContent = 'Welcome back';
-      document.getElementById('auth-label').textContent = 'Enter your PIN';
-      if (cb && this.hasBiometric()) {
-        bk.style.visibility = 'visible';
-        setTimeout(() => this.tryBiometric(), 400);
+  initAuth() {
+    const form = document.getElementById('auth-form');
+    const forgot = document.getElementById('auth-forgot');
+    const btn = document.getElementById('auth-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      if (!email || !password) return;
+      btn.disabled = true;
+      btn.textContent = 'Signing in\u2026';
+      this.clearMsg();
+      try {
+        await fbAuth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        const msgs = {
+          'auth/user-not-found': 'No account found with this email',
+          'auth/wrong-password': 'Incorrect password',
+          'auth/invalid-email': 'Invalid email address',
+          'auth/too-many-requests': 'Too many attempts. Try again later.',
+          'auth/invalid-credential': 'Invalid email or password'
+        };
+        this.showMsg(msgs[err.code] || err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
       }
-    }
-    document.querySelectorAll('#pin-pad .pin-key').forEach((b) => {
-      b.addEventListener('click', () => {
-        const k = b.dataset.key;
-        if (k === 'bio') this.tryBiometric();
-        else if (k === 'del') this.deleteDigit();
-        else this.addDigit(k);
-      });
     });
-  },
-  addDigit(d) {
-    if (this.pin.length >= 4 || this.isLockedOut()) return;
-    this.pin += d;
-    if (navigator.vibrate) navigator.vibrate(10);
-    this.updateDots();
-    if (this.pin.length === 4) setTimeout(() => this.submitPin(), 150);
-  },
-  deleteDigit() {
-    this.pin = this.pin.slice(0, -1);
-    this.updateDots();
-    this.clearMsg();
-  },
-  updateDots() {
-    document.querySelectorAll('#pin-dots .pin-dot').forEach((d, i) => {
-      d.classList.toggle('filled', i < this.pin.length);
-      d.classList.remove('error');
+
+    forgot.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      if (!email) {
+        this.showMsg('Enter your email first, then tap Forgot password', 'error');
+        return;
+      }
+      try {
+        await fbAuth.sendPasswordResetEmail(email);
+        this.showMsg('Password reset email sent! Check your inbox.', 'success');
+      } catch (err) {
+        if (err.code === 'auth/invalid-email') this.showMsg('Invalid email address', 'error');
+        else this.showMsg('Reset email sent if account exists.', 'success');
+      }
+    });
+
+    fbAuth.onAuthStateChanged((user) => {
+      if (user) {
+        currentUid = user.uid;
+        this.cleanupOldAuth();
+        this.unlock();
+      }
     });
   },
   showMsg(t, c = '') {
@@ -198,73 +91,10 @@ const Auth = {
     e.textContent = '';
     e.className = 'auth-msg';
   },
-  shakeAndReset() {
-    document.querySelectorAll('#pin-dots .pin-dot').forEach((d) => d.classList.add('error'));
-    const w = document.getElementById('pin-dots');
-    w.style.animation = 'shake .4s ease';
-    setTimeout(() => {
-      w.style.animation = '';
-      this.pin = '';
-      this.updateDots();
-    }, 500);
-  },
-  async submitPin() {
-    if (this.isLockedOut()) {
-      const secs = Math.ceil((this.lockoutUntil - Date.now()) / 1000);
-      this.showMsg('Locked out. Wait ' + secs + 's.', 'error');
-      this.shakeAndReset();
-      return;
-    }
-    if (this.mode === 'setup') {
-      this.setupPin = this.pin;
-      this.pin = '';
-      this.mode = 'confirm';
-      document.getElementById('auth-label').textContent = 'Confirm your PIN';
-      this.updateDots();
-      this.showMsg('Re-enter the same PIN', '');
-      return;
-    }
-    if (this.mode === 'confirm') {
-      if (this.pin === this.setupPin) {
-        await this.savePin(this.pin);
-        this.showMsg('PIN set!', 'success');
-        if (await this.canUseBiometric()) {
-          this.showMsg('Setting up fingerprint...', 'success');
-          if (await this.registerBiometric()) this.showMsg('PIN + Fingerprint ready!', 'success');
-        }
-        setTimeout(() => this.unlock(), 600);
-      } else {
-        this.showMsg("PINs don't match \u2014 try again", 'error');
-        this.shakeAndReset();
-        this.mode = 'setup';
-        document.getElementById('auth-label').textContent = 'Choose a 4-digit PIN';
-        this.setupPin = '';
-      }
-      return;
-    }
-    if (this.mode === 'verify') {
-      if (await this.checkPin(this.pin)) {
-        this.attempts = 0;
-        this.showMsg('Unlocked!', 'success');
-        setTimeout(() => this.unlock(), 300);
-      } else {
-        this.attempts++;
-        if (this.attempts >= 5) {
-          this.lockoutUntil = Date.now() + 30000;
-          this.showMsg('Too many attempts. Locked for 30s.', 'error');
-        } else {
-          this.showMsg('Wrong PIN (' + this.attempts + '/5)', 'error');
-        }
-        this.shakeAndReset();
-      }
-    }
-  },
-  async tryBiometric() {
-    this.showMsg('Verifying...', '');
-    if (await this.verifyBiometric()) {
-      this.showMsg('Unlocked!', 'success');
-      setTimeout(() => this.unlock(), 300);
-    } else this.showMsg('Fingerprint failed \u2014 use PIN', 'error');
+  cleanupOldAuth() {
+    ['lc_pin_hash', 'lc_pin_salt', 'lc_bio_cred', 'lc_auth_attempts', 'lc_auth_lockout'].forEach((k) =>
+      localStorage.removeItem(k)
+    );
   },
   unlock() {
     document.getElementById('auth-screen').classList.add('hidden');
@@ -272,6 +102,11 @@ const Auth = {
     startApp();
   }
 };
+
+/* ── User-scoped Firestore path ── */
+function userCol(col) {
+  return `users/${currentUid}/${col}`;
+}
 
 /* ── Constants ── */
 const TASKS = [
@@ -572,41 +407,42 @@ const DB = {
       console.warn('Firestore persistence:', e.code);
     }
     await this._migrateFromIndexedDB();
+    await this._migrateRootToUser();
   },
 
   async put(col, data) {
     const docId = data.key || data.date;
-    await fsDb.collection(col).doc(docId).set(data);
+    await fsDb.collection(userCol(col)).doc(docId).set(data);
     this._dirty(col);
   },
 
   async add(col, data) {
-    await fsDb.collection(col).add(data);
+    await fsDb.collection(userCol(col)).add(data);
     this._dirty(col);
   },
 
   async get(col, key) {
-    const doc = await fsDb.collection(col).doc(key).get();
+    const doc = await fsDb.collection(userCol(col)).doc(key).get();
     return doc.exists ? doc.data() : null;
   },
 
   async getByIndex(col, field, value) {
-    const snap = await fsDb.collection(col).where(field, '==', value).get();
+    const snap = await fsDb.collection(userCol(col)).where(field, '==', value).get();
     return snap.docs.map((d) => d.data());
   },
 
   async getRange(col, field, lo, hi) {
-    const snap = await fsDb.collection(col).where(field, '>=', lo).where(field, '<=', hi).get();
+    const snap = await fsDb.collection(userCol(col)).where(field, '>=', lo).where(field, '<=', hi).get();
     return snap.docs.map((d) => d.data());
   },
 
   async deleteItem(col, key) {
-    await fsDb.collection(col).doc(key).delete();
+    await fsDb.collection(userCol(col)).doc(key).delete();
     this._dirty(col);
   },
 
   async getAll(col) {
-    const snap = await fsDb.collection(col).get();
+    const snap = await fsDb.collection(userCol(col)).get();
     return snap.docs.map((d) => d.data());
   },
 
@@ -685,7 +521,7 @@ const DB = {
       for (let i = 0; i < all.length; i += 400) {
         const batch = fsDb.batch();
         all.slice(i, i + 400).forEach((item) => {
-          const ref = item.id ? fsDb.collection(item.col).doc(item.id) : fsDb.collection(item.col).doc();
+          const ref = item.id ? fsDb.collection(userCol(item.col)).doc(item.id) : fsDb.collection(userCol(item.col)).doc();
           batch.set(ref, item.d);
         });
         await batch.commit();
@@ -696,6 +532,31 @@ const DB = {
     } catch (e) {
       console.warn('Migration:', e);
       localStorage.setItem('lc_migrated_firestore', '1');
+    }
+  },
+
+  async _migrateRootToUser() {
+    if (!currentUid || localStorage.getItem('lc_migrated_user_scope')) return;
+    try {
+      const cols = ['checklist', 'spo2', 'meds', 'dailylog'];
+      let totalMigrated = 0;
+      for (const col of cols) {
+        const snap = await fsDb.collection(col).get();
+        if (snap.empty) continue;
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          const batch = fsDb.batch();
+          snap.docs.slice(i, i + 400).forEach((doc) => {
+            batch.set(fsDb.collection(userCol(col)).doc(doc.id), doc.data());
+          });
+          await batch.commit();
+        }
+        totalMigrated += snap.docs.length;
+      }
+      if (totalMigrated > 0) console.log(`Migrated ${totalMigrated} docs to user scope`);
+      localStorage.setItem('lc_migrated_user_scope', '1');
+    } catch (e) {
+      console.warn('User scope migration:', e);
+      localStorage.setItem('lc_migrated_user_scope', '1');
     }
   }
 };
@@ -1536,7 +1397,7 @@ async function toggleNotifications() {
       await fsDb
         .collection('devices')
         .doc(deviceId)
-        .set({ token, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        .set({ token, uid: currentUid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       localStorage.setItem('lc_fcm_enabled', '1');
       document.getElementById('notif-status').textContent =
         'Notifications enabled! You\u2019ll get reminders for each task.';
@@ -1566,7 +1427,7 @@ async function refreshFCMToken() {
     await fsDb
       .collection('devices')
       .doc(deviceId)
-      .set({ token, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      .set({ token, uid: currentUid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   } catch (e) {
     console.warn('FCM refresh:', e);
   }
@@ -1656,15 +1517,17 @@ function showSettings() {
   renderMedConfig();
   updateNotifToggle();
   renderNotifSchedule();
+  const user = fbAuth.currentUser;
+  const emailEl = document.getElementById('auth-user-email');
+  if (emailEl && user) emailEl.textContent = user.email;
   document.getElementById('settings-modal').classList.add('visible');
 }
 function hideSettings() {
   document.getElementById('settings-modal').classList.remove('visible');
 }
-function resetPin() {
-  localStorage.removeItem('lc_pin_hash');
-  localStorage.removeItem('lc_pin_salt');
-  localStorage.removeItem('lc_bio_cred');
+async function signOut() {
+  await fbAuth.signOut();
+  currentUid = null;
   location.reload();
 }
 
@@ -1700,7 +1563,7 @@ async function importData(input) {
     if (!Array.isArray(data.checklist) || !Array.isArray(data.spo2)) throw new Error('Invalid backup format');
     // Clear Firestore collections
     for (const col of ['checklist', 'spo2', 'meds', 'dailylog']) {
-      const snap = await fsDb.collection(col).get();
+      const snap = await fsDb.collection(userCol(col)).get();
       for (let i = 0; i < snap.docs.length; i += 400) {
         const batch = fsDb.batch();
         snap.docs.slice(i, i + 400).forEach((doc) => batch.delete(doc.ref));
@@ -1709,7 +1572,7 @@ async function importData(input) {
     }
     for (const item of data.checklist) await DB.put('checklist', item);
     for (const item of data.spo2) {
-      if (item.id) await fsDb.collection('spo2').doc(String(item.id)).set(item);
+      if (item.id) await fsDb.collection(userCol('spo2')).doc(String(item.id)).set(item);
       else await DB.add('spo2', item);
     }
     if (data.meds) for (const item of data.meds) await DB.put('meds', item);
@@ -1779,4 +1642,4 @@ async function startApp() {
   refreshFCMToken();
 }
 initSW();
-Auth.initAuth().catch(console.error);
+Auth.initAuth();

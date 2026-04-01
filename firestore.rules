@@ -1,24 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Single-user personal app — permissive rules
-    // The FCM token doc is write-only from client; Cloud Functions read via admin SDK
+    // Device tokens — authenticated users can write their own, Cloud Functions read via admin SDK
     match /devices/{deviceId} {
-      allow write: if true;
+      allow write: if request.auth != null && request.resource.data.uid == request.auth.uid;
       allow read: if false;
     }
-    // App data collections
+    // User-scoped data — only the owning user can read/write
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Root-level collections — read-only for migration, then remove
     match /checklist/{docId} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     match /spo2/{docId} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     match /meds/{docId} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     match /dailylog/{docId} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
