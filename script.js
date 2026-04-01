@@ -1436,13 +1436,19 @@ async function refreshFCMToken() {
 // Notification icon (shared by foreground handler + test)
 const NOTIF_ICON = './icons/icon-192.svg';
 
-// Handle foreground messages
-fbMessaging.onMessage((payload) => {
+// Handle foreground messages (must use SW showNotification — new Notification() fails on mobile)
+fbMessaging.onMessage(async (payload) => {
   const title = payload.notification?.title || payload.data?.title || 'LungCare';
   const body = payload.notification?.body || payload.data?.body || '';
-  // Show native notification even in foreground
   if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: NOTIF_ICON, tag: payload.data?.tag || 'lungcare' });
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification(title, {
+      body,
+      icon: NOTIF_ICON,
+      tag: payload.data?.tag || 'lungcare',
+      vibrate: [200, 100, 200],
+      renotify: true
+    });
   }
 });
 
