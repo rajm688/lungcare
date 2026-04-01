@@ -1,0 +1,26 @@
+{
+  "name": "LungCare — Raj Kumar",
+  "short_name": "LungCare",
+  "description": "Daily lung health tracker for Kartagener Syndrome & Bronchiectasis",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F0FDF9",
+  "theme_color": "#0F766E",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230F766E'/><path d='M66 130 C54 118 50 96 54 74 C58 56 70 48 80 54 C84 57 86 63 86 72 L86 138 C80 142 72 138 66 130Z' fill='white' opacity='.95'/><path d='M126 130 C138 118 142 96 138 74 C134 56 122 48 112 54 C108 57 106 63 106 72 L106 138 C112 142 120 138 126 130Z' fill='white' opacity='.95'/><rect x='90' y='38' width='12' height='42' rx='6' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230F766E'/><path d='M175 348 C142 316 132 256 142 196 C152 148 184 128 212 144 C222 150 228 168 228 192 L228 368 C212 378 192 368 175 348Z' fill='white' opacity='.95'/><path d='M337 348 C370 316 380 256 370 196 C360 148 328 128 300 144 C290 150 284 168 284 192 L284 368 C300 378 320 368 337 348Z' fill='white' opacity='.95'/><rect x='242' y='100' width='28' height='112' rx='14' fill='white'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "medical"],
+  "screenshots": []
+}
