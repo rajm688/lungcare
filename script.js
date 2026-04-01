@@ -1392,7 +1392,7 @@ async function toggleNotifications() {
       return;
     }
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
+      const reg = await navigator.serviceWorker.ready;
       const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
       await fsDb
         .collection('devices')
@@ -1422,7 +1422,7 @@ async function refreshFCMToken() {
   if (!isNotifEnabled()) return;
   try {
     const deviceId = getDeviceId();
-    const reg = await navigator.serviceWorker.getRegistration();
+    const reg = await navigator.serviceWorker.ready;
     const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     await fsDb
       .collection('devices')
