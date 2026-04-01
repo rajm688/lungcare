@@ -1,28 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#FFFFFF">
-    <meta name="description" content="Personal health tracking application">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:;">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="description" content="Personal health tracking application" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:;"
+    />
     <title>LungCare</title>
-    <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
     <div id="auth-screen">
-      <div class="auth-logo-wrap"><svg class="auth-logo" viewBox="0 0 40 40" fill="none">
-          <path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="white" opacity=".9" />
-          <path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="white" opacity=".9" />
-          <rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="white" />
-        </svg></div>
+      <div class="auth-logo-wrap"><img class="auth-logo" src="icons/logo-white.svg" alt="LungCare" /></div>
       <div class="auth-title">LungCare</div>
       <div class="auth-subtitle" id="auth-subtitle">Enter your PIN</div>
       <div class="auth-label" id="auth-label">PIN</div>
@@ -33,43 +31,57 @@
         <div class="pin-dot"></div>
       </div>
       <div class="pin-pad" id="pin-pad">
-        <button class="pin-key" data-key="1">1</button><button class="pin-key" data-key="2">2</button><button class="pin-key" data-key="3">3</button>
-        <button class="pin-key" data-key="4">4</button><button class="pin-key" data-key="5">5</button><button class="pin-key" data-key="6">6</button>
-        <button class="pin-key" data-key="7">7</button><button class="pin-key" data-key="8">8</button><button class="pin-key" data-key="9">9</button>
-        <button class="pin-key action" id="bio-key" data-key="bio" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+        <button class="pin-key" data-key="1">1</button><button class="pin-key" data-key="2">2</button
+        ><button class="pin-key" data-key="3">3</button> <button class="pin-key" data-key="4">4</button
+        ><button class="pin-key" data-key="5">5</button><button class="pin-key" data-key="6">6</button>
+        <button class="pin-key" data-key="7">7</button><button class="pin-key" data-key="8">8</button
+        ><button class="pin-key" data-key="9">9</button>
+        <button class="pin-key action" id="bio-key" data-key="bio" style="visibility: hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
             <path d="M12 10v4M7.5 7.5C9 6 10.5 5.5 12 5.5s3 .5 4.5 2M5 5c2.5-2.5 4.5-3 7-3s4.5.5 7 3" />
             <path d="M12 14c0 2.5-.5 4.5-1.5 6M16.5 10.5c0 3-1 5.5-2.5 7.5M19 8c.5 1 1 2.5 1 4.5 0 3-1 5.5-2 7" />
             <path d="M8.5 12.5c0 2-.5 4-1.5 5.5M5.5 10c-.3 1-.5 2-.5 3.5 0 2-.5 3.5-1 5" />
-          </svg></button>
+          </svg>
+        </button>
         <button class="pin-key" data-key="0">0</button><button class="pin-key action" data-key="del">&#x232B;</button>
       </div>
       <div class="auth-msg" id="auth-msg"></div>
       <div class="auth-setup-info" id="auth-setup-info"></div>
     </div>
 
-    <div id="app" style="display:none;">
+    <div id="app" style="display: none">
       <header class="app-header">
-        <svg class="header-logo" viewBox="0 0 40 40" fill="none">
-          <path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="#6366F1" opacity=".9" />
-          <path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="#6366F1" opacity=".9" />
-          <rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="#6366F1" />
-        </svg>
+        <img class="header-logo" src="icons/logo-indigo.svg" alt="LungCare" />
         <div class="header-info">
           <div class="header-title">LungCare</div>
           <div class="header-date" id="header-date"></div>
         </div>
         <div class="streak-badge" id="streak-header">&#x1F525; 0</div>
-        <button class="settings-btn" onclick="showSettings()" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="settings-btn" onclick="showSettings()" aria-label="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-          </svg></button>
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            />
+          </svg>
+        </button>
       </header>
       <div class="tabs">
         <div class="tab-panel active" id="panel-today">
           <div class="today-summary">
-            <div class="progress-ring-wrap"><svg width="72" height="72" viewBox="0 0 72 72">
+            <div class="progress-ring-wrap">
+              <svg width="72" height="72" viewBox="0 0 72 72">
                 <circle class="ring-bg" cx="36" cy="36" r="30" stroke-width="6" />
-                <circle class="ring-fill" id="ring-fill" cx="36" cy="36" r="30" stroke-width="6" stroke-dasharray="188.4" stroke-dashoffset="188.4" />
+                <circle
+                  class="ring-fill"
+                  id="ring-fill"
+                  cx="36"
+                  cy="36"
+                  r="30"
+                  stroke-width="6"
+                  stroke-dasharray="188.4"
+                  stroke-dashoffset="188.4"
+                />
               </svg>
               <div class="ring-center" id="ring-pct">0%</div>
             </div>
@@ -87,48 +99,59 @@
           <div id="spo2-chart-wrap"></div>
           <div class="spo2-entry">
             <div class="entry-title">Log SpO2 reading</div>
-            <div style="margin-bottom:14px">
+            <div style="margin-bottom: 14px">
               <div class="spo2-value-display spo2-ok" id="spo2-display">&mdash;</div>
               <div class="spo2-status" id="spo2-status"></div>
             </div>
             <div class="inline-error" id="spo2-error"></div>
             <div class="entry-row">
-              <div class="field"><label>SpO2 (%)</label><input type="number" id="inp-spo2" min="70" max="100" placeholder="95" inputmode="numeric"></div>
-              <div class="field"><label>Pulse (bpm)</label><input type="number" id="inp-pulse" min="40" max="200" placeholder="75" inputmode="numeric"></div>
+              <div class="field">
+                <label>SpO2 (%)</label><input type="number" id="inp-spo2" min="70" max="100" placeholder="95" inputmode="numeric" />
+              </div>
+              <div class="field">
+                <label>Pulse (bpm)</label><input type="number" id="inp-pulse" min="40" max="200" placeholder="75" inputmode="numeric" />
+              </div>
             </div>
-            <div class="field" style="margin-bottom:12px"><label>How are you feeling?</label><select id="inp-feeling">
+            <div class="field" style="margin-bottom: 12px">
+              <label>How are you feeling?</label
+              ><select id="inp-feeling">
                 <option value="">Select feeling</option>
                 <option value="Great">&#x1F60A; Great</option>
                 <option value="Normal">&#x1F610; Normal</option>
                 <option value="Tired">&#x1F614; Tired</option>
                 <option value="Breathless">&#x1F62E;&#x200D;&#x1F4A8; Breathless</option>
                 <option value="Wheezing">&#x1F630; Wheezing/Coughing</option>
-              </select></div>
-            <div class="field" style="margin-bottom:14px"><label>Notes (optional)</label><textarea id="inp-notes" placeholder="After walk, felt a bit tired..."></textarea></div>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom: 14px">
+              <label>Notes (optional)</label><textarea id="inp-notes" placeholder="After walk, felt a bit tired..."></textarea>
+            </div>
             <button class="btn-primary" onclick="saveSpo2()">Save reading</button>
           </div>
-          <div class="card" style="margin:16px;margin-top:0">
+          <div class="card" style="margin: 16px; margin-top: 0">
             <div class="card-header"><span class="card-title">Recent readings</span></div>
             <div id="spo2-history"></div>
           </div>
         </div>
         <div class="tab-panel" id="panel-meds">
-          <div style="padding:16px 16px 0">
-            <div class="card" style="background:var(--pri-l);margin-bottom:0;box-shadow:none">
-              <div style="padding:14px 16px;font-size:13px;color:var(--pri-d);line-height:1.5;font-weight:500">Tap each medication to mark as taken. Resets daily at midnight. Manage your medications in Settings.</div>
+          <div style="padding: 16px 16px 0">
+            <div class="card" style="background: var(--pri-l); margin-bottom: 0; box-shadow: none">
+              <div style="padding: 14px 16px; font-size: 13px; color: var(--pri-d); line-height: 1.5; font-weight: 500">
+                Tap each medication to mark as taken. Resets daily at midnight. Manage your medications in Settings.
+              </div>
             </div>
           </div>
           <div id="meds-body"></div>
         </div>
         <div class="tab-panel" id="panel-progress">
           <div class="streak-card">
-            <div style="font-size:13px;opacity:.75;margin-bottom:6px;font-weight:600">Current streak</div>
+            <div style="font-size: 13px; opacity: 0.75; margin-bottom: 6px; font-weight: 600">Current streak</div>
             <div class="streak-num" id="streak-big">0</div>
             <div class="streak-unit">consecutive days</div>
             <div class="streak-best" id="streak-best-text">Best streak: 0 days</div>
             <div class="streak-threshold">&#x2265; 70% completion = streak day</div>
           </div>
-          <div class="card" style="margin:0 16px">
+          <div class="card" style="margin: 0 16px">
             <div class="card-header"><span class="card-title">This week</span></div>
             <div class="week-grid" id="week-grid"></div>
           </div>
@@ -150,44 +173,60 @@
               <div class="stat-lbl">Perfect days (100%)</div>
             </div>
           </div>
-          <div class="card" style="margin:0 16px 16px">
+          <div class="card" style="margin: 0 16px 16px">
             <div class="card-header"><span class="card-title">Last 14 days</span></div>
             <div id="history-list"></div>
           </div>
         </div>
       </div>
       <nav class="bottom-nav">
-        <button class="nav-btn active" data-tab="today" onclick="switchTab('today',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="nav-btn active" data-tab="today" onclick="switchTab('today', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-          </svg>Today</button>
-        <button class="nav-btn" data-tab="spo2" onclick="switchTab('spo2',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-          </svg>SpO2</button>
-        <button class="nav-btn" data-tab="meds" onclick="switchTab('meds',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z" />
-          </svg>Meds</button>
-        <button class="nav-btn" data-tab="progress" onclick="switchTab('progress',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg
+          >Today
+        </button>
+        <button class="nav-btn" data-tab="spo2" onclick="switchTab('spo2', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg
+          >SpO2
+        </button>
+        <button class="nav-btn" data-tab="meds" onclick="switchTab('meds', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"
+            /></svg
+          >Meds
+        </button>
+        <button class="nav-btn" data-tab="progress" onclick="switchTab('progress', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>Progress</button>
+            <line x1="6" y1="20" x2="6" y2="14" /></svg
+          >Progress
+        </button>
       </nav>
     </div>
 
-    <div class="toast" id="undo-toast"><span class="toast-text" id="undo-text">Task unchecked</span><button class="toast-btn" onclick="undoLastAction()">Undo</button></div>
+    <div class="toast" id="undo-toast">
+      <span class="toast-text" id="undo-text">Task unchecked</span><button class="toast-btn" onclick="undoLastAction()">Undo</button>
+    </div>
 
-    <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)hideSettings()">
+    <div class="modal-overlay" id="settings-modal" onclick="if (event.target === this) hideSettings();">
       <div class="modal-sheet">
-        <div class="modal-header"><span class="modal-title">Settings</span><button class="modal-close" onclick="hideSettings()">&#x2715;</button></div>
+        <div class="modal-header">
+          <span class="modal-title">Settings</span><button class="modal-close" onclick="hideSettings()">&#x2715;</button>
+        </div>
         <div class="settings-section">
           <div class="settings-section-title">Data Management</div>
           <div class="settings-btn-row">
             <button class="btn-secondary" onclick="exportData()">&#x2B07; Export Data</button>
             <button class="btn-secondary" onclick="document.getElementById('import-file').click()">&#x2B06; Import Data</button>
           </div>
-          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
-          <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">Export saves all your data as JSON. Import restores from a backup file.</div>
+          <input type="file" id="import-file" accept=".json" style="display: none" onchange="importData(this)" />
+          <div style="font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.5">
+            Export saves all your data as JSON. Import restores from a backup file.
+          </div>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Notifications</div>
@@ -198,21 +237,21 @@
             </div>
             <div class="toggle" id="notif-toggle" onclick="toggleNotifications()"></div>
           </div>
-          <div id="notif-status" style="font-size:12px;color:var(--text-3);margin-top:4px"></div>
-          <button class="btn-secondary" onclick="testNotification()" style="margin-top:10px">&#x1F514; Send test notification</button>
+          <div id="notif-status" style="font-size: 12px; color: var(--text-3); margin-top: 4px"></div>
+          <button class="btn-secondary" onclick="testNotification()" style="margin-top: 10px">&#x1F514; Send test notification</button>
           <div id="notif-schedule"></div>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Medications</div>
           <div id="med-config-list"></div>
           <div class="med-add-form" id="med-add-form">
-            <input type="text" id="med-add-name" placeholder="Medication name">
-            <input type="text" id="med-add-sub" placeholder="Dose / instructions">
+            <input type="text" id="med-add-name" placeholder="Medication name" />
+            <input type="text" id="med-add-sub" placeholder="Dose / instructions" />
             <select id="med-add-time">
               <option value="am">Morning</option>
               <option value="pm">Evening</option>
             </select>
-            <button class="btn-primary" style="margin-top:0" onclick="addCustomMed()">Add medication</button>
+            <button class="btn-primary" style="margin-top: 0" onclick="addCustomMed()">Add medication</button>
           </div>
         </div>
         <div class="settings-section">
@@ -220,14 +259,18 @@
           <button class="btn-secondary btn-danger" onclick="resetPin()">Reset PIN</button>
         </div>
         <div class="settings-section">
-          <div style="font-size:12px;color:var(--text-3);text-align:center">LungCare v5.0 &mdash; Your data stays on this device.</div>
+          <div style="font-size: 12px; color: var(--text-3); text-align: center">LungCare v5.0 &mdash; Your data stays on this device.</div>
         </div>
       </div>
     </div>
 
-    <div class="update-banner" id="update-banner"><span>A new version is available</span><button class="update-btn" onclick="location.reload()">Update</button></div>
+    <div class="update-banner" id="update-banner">
+      <span>A new version is available</span><button class="update-btn" onclick="location.reload()">Update</button>
+    </div>
     <div id="install-banner" class="hidden">
-      <div class="install-text"><strong>Install LungCare</strong><br>Add to home screen for offline access</div><button class="install-btn" id="install-btn">Install</button><button class="install-close" onclick="dismissInstall()">&#x2715;</button>
+      <div class="install-text"><strong>Install LungCare</strong><br />Add to home screen for offline access</div>
+      <button class="install-btn" id="install-btn">Install</button
+      ><button class="install-close" onclick="dismissInstall()">&#x2715;</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -236,5 +279,4 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
     <script src="script.js"></script>
   </body>
-
 </html>
