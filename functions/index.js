@@ -85,13 +85,15 @@ exports.sendReminders = functionsV1.pubsub
 
     const snapshot = await db.collection('devices').get();
     if (snapshot.empty) {
-      console.log('No FCM tokens found');
+      console.log('No FCM tokens found — 0 devices registered');
       return null;
     }
 
+    console.log(`Found ${snapshot.size} registered device(s) for reminder ${key}`);
+
     const sendPromises = snapshot.docs.map(async (doc) => {
       const token = doc.data().token;
-      if (!token) return;
+      if (!token) { console.log(`Skipping ${doc.id}: no token`); return; }
 
       try {
         await messaging.send({
@@ -136,7 +138,8 @@ exports.sendReminders = functionsV1.pubsub
       }
     });
 
-    await Promise.all(sendPromises);
+    const results = await Promise.all(sendPromises);
+    console.log(`Reminder ${key} done — sent to ${snapshot.size} device(s)`);
     return null;
   });
 
@@ -146,6 +149,8 @@ exports.sendTestNotification = onCall(async (request) => {
   if (snapshot.empty) {
     throw new HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
   }
+
+  console.log(`Test notification: found ${snapshot.size} registered device(s)`);
 
   let sent = 0;
   const errors = [];
@@ -185,6 +190,8 @@ exports.sendTestNotification = onCall(async (request) => {
       }
     }
   }));
+
+  console.log(`Test notification done — sent: ${sent}, failed: ${errors.length}, cleaned: ${snapshot.size - sent - errors.length}`);
 
   if (sent === 0 && errors.length > 0) {
     throw new HttpsError('internal', 'Send failed: ' + errors.join('; '));
