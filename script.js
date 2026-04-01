@@ -1,0 +1,497 @@
+/* ── Utility ── */
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
+/* ── Firebase Init ── */
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyCeBxHzJbfFUi6_DU8SpuFQgtXI6LOwns8",
+  authDomain:"lungcare-721be.firebaseapp.com",
+  projectId:"lungcare-721be",
+  storageBucket:"lungcare-721be.firebasestorage.app",
+  messagingSenderId:"167334814176",
+  appId:"1:167334814176:web:068aa93adbc0768f678b85"
+};
+const VAPID_KEY='BMaJO5Tsl5xqnq2N4YjTjiezRER6IItjkhIwNhsJeIb6Fpk8_fUCWzeBvtNUND-uoo0Cw8hmcZ4KSyJ3cifSRIQ';
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const fsDb=firebase.firestore();
+const fbMessaging=firebase.messaging();
+
+/* ── Auth ── */
+const Auth={
+  pin:'',mode:'verify',setupPin:'',attempts:0,lockoutUntil:0,
+  isLockedOut(){if(Date.now()<this.lockoutUntil)return true;if(this.lockoutUntil>0){this.attempts=0;this.lockoutUntil=0}return false},
+  getSalt(){let s=localStorage.getItem('lc_pin_salt');if(!s){s=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('lc_pin_salt',s)}return s},
+  async hashPin(p){const salt=this.getSalt();const d=new TextEncoder().encode(salt+p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')},
+  async hashPinLegacy(p){const d=new TextEncoder().encode('lungcare_'+p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')},
+  hasPin(){return!!localStorage.getItem('lc_pin_hash')},
+  async checkPin(p){const stored=localStorage.getItem('lc_pin_hash');if(localStorage.getItem('lc_pin_salt'))return(await this.hashPin(p))===stored;if((await this.hashPinLegacy(p))===stored){await this.savePin(p);return true}return false},
+  async savePin(p){this.getSalt();localStorage.setItem('lc_pin_hash',await this.hashPin(p))},
+  hasBiometric(){return!!localStorage.getItem('lc_bio_cred')},
+  async canUseBiometric(){if(!window.PublicKeyCredential)return false;try{return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()}catch{return false}},
+  async registerBiometric(){try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'LungCare',id:location.hostname||'localhost'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'lungcare-user',displayName:'LungCare User'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});localStorage.setItem('lc_bio_cred',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));return true}catch(e){console.warn('Bio register:',e);return false}},
+  async verifyBiometric(){try{const id=localStorage.getItem('lc_bio_cred');if(!id)return false;await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{id:Uint8Array.from(atob(id),c=>c.charCodeAt(0)),type:'public-key',transports:['internal']}],userVerification:'required',timeout:60000}});return true}catch(e){console.warn('Bio verify:',e);return false}},
+  async initAuth(){
+    const bk=document.getElementById('bio-key');const cb=await this.canUseBiometric();
+    if(!this.hasPin()){this.mode='setup';document.getElementById('auth-subtitle').textContent='Set up your PIN';document.getElementById('auth-label').textContent='Choose a 4-digit PIN';document.getElementById('auth-setup-info').textContent='This PIN protects your health data. Remember it \u2014 there is no recovery option.'}
+    else{this.mode='verify';document.getElementById('auth-subtitle').textContent='Welcome back';document.getElementById('auth-label').textContent='Enter your PIN';if(cb&&this.hasBiometric()){bk.style.visibility='visible';setTimeout(()=>this.tryBiometric(),400)}}
+    document.querySelectorAll('#pin-pad .pin-key').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.key;if(k==='bio')this.tryBiometric();else if(k==='del')this.deleteDigit();else this.addDigit(k)})});
+  },
+  addDigit(d){if(this.pin.length>=4||this.isLockedOut())return;this.pin+=d;if(navigator.vibrate)navigator.vibrate(10);this.updateDots();if(this.pin.length===4)setTimeout(()=>this.submitPin(),150)},
+  deleteDigit(){this.pin=this.pin.slice(0,-1);this.updateDots();this.clearMsg()},
+  updateDots(){document.querySelectorAll('#pin-dots .pin-dot').forEach((d,i)=>{d.classList.toggle('filled',i<this.pin.length);d.classList.remove('error')})},
+  showMsg(t,c=''){const e=document.getElementById('auth-msg');e.textContent=t;e.className='auth-msg'+(c?' '+c:'')},
+  clearMsg(){const e=document.getElementById('auth-msg');e.textContent='';e.className='auth-msg'},
+  shakeAndReset(){document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));const w=document.getElementById('pin-dots');w.style.animation='shake .4s ease';setTimeout(()=>{w.style.animation='';this.pin='';this.updateDots()},500)},
+  async submitPin(){
+    if(this.isLockedOut()){const secs=Math.ceil((this.lockoutUntil-Date.now())/1000);this.showMsg('Locked out. Wait '+secs+'s.','error');this.shakeAndReset();return}
+    if(this.mode==='setup'){this.setupPin=this.pin;this.pin='';this.mode='confirm';document.getElementById('auth-label').textContent='Confirm your PIN';this.updateDots();this.showMsg('Re-enter the same PIN','');return}
+    if(this.mode==='confirm'){if(this.pin===this.setupPin){await this.savePin(this.pin);this.showMsg('PIN set!','success');if(await this.canUseBiometric()){this.showMsg('Setting up fingerprint...','success');if(await this.registerBiometric())this.showMsg('PIN + Fingerprint ready!','success')}setTimeout(()=>this.unlock(),600)}else{this.showMsg("PINs don't match \u2014 try again",'error');this.shakeAndReset();this.mode='setup';document.getElementById('auth-label').textContent='Choose a 4-digit PIN';this.setupPin=''}return}
+    if(this.mode==='verify'){if(await this.checkPin(this.pin)){this.attempts=0;this.showMsg('Unlocked!','success');setTimeout(()=>this.unlock(),300)}else{this.attempts++;if(this.attempts>=5){this.lockoutUntil=Date.now()+30000;this.showMsg('Too many attempts. Locked for 30s.','error')}else{this.showMsg('Wrong PIN ('+this.attempts+'/5)','error')}this.shakeAndReset()}}
+  },
+  async tryBiometric(){this.showMsg('Verifying...','');if(await this.verifyBiometric()){this.showMsg('Unlocked!','success');setTimeout(()=>this.unlock(),300)}else this.showMsg('Fingerprint failed \u2014 use PIN','error')},
+  unlock(){document.getElementById('auth-screen').classList.add('hidden');document.getElementById('app').style.display='flex';startApp()}
+};
+
+/* ── Constants ── */
+const TASKS=[
+{id:'spo2-wake',s:'morning',n:'Check SpO2 on waking',d:'Target \u2265 95%. Below 93% \u2192 sit upright, call doctor.',t:'mon'},
+{id:'postural',s:'morning',n:'Postural drainage \u2014 10 min',d:'Head lower than chest. Gravity drains mucus before clearance.',t:'clear'},
+{id:'nasal-wash',s:'morning',n:'Nasal saline wash',d:'Lukewarm 37\u00B0C RO water + Jala Neti salt. Daily now, not weekly.',t:'nasal'},
+{id:'forocot-am',s:'morning',n:'Forocot G \u2014 1 puff (morning)',d:'Always first. Wait 10\u201315 min before Aerobika. Rinse mouth.',t:'med'},
+{id:'aerobika-am',s:'morning',n:'Aerobika \u2014 5 cycles',d:'Inhale \u2192 hold 2s \u2192 exhale through device \u2192 huff cough after.',t:'clear'},
+{id:'spiro',s:'morning',n:'Spirometer \u2014 10 deep breaths',d:'Hold 3s each. Do before Aerobika. Mon/Wed/Fri only.',t:'ex',days:[1,3,5]},
+{id:'core-am',s:'morning',n:'Core: belly breathing + pelvic tilt',d:'10 diaphragmatic breaths + 10 pelvic tilts on back. 5 min.',t:'core'},
+{id:'breakfast',s:'morning',n:'High-calorie South Indian breakfast',d:'Idli/pesarattu + eggs/paneer + banana + turmeric milk. 500+ kcal.',t:'food'},
+{id:'walk-am',s:'morning',n:'Morning walk \u2014 20 min',d:'Pursed-lip breathing. N95 near traffic. Check SpO2 after.',t:'ex'},
+{id:'stretch',s:'morning',n:'Doorway chest stretch \u2014 3\u00D730s',d:'Lean through doorway, chest opens. Fixes posture.',t:'pos'},
+{id:'snack-am',s:'day',n:'Mid-morning snack (10:30 AM)',d:'Nuts + groundnut chikki + coconut water. Never skip.',t:'food'},
+{id:'lunch',s:'day',n:'Lunch \u2014 biggest meal (1 PM)',d:'Rice + sambar + dal + curd. Add ghee. 650 kcal target.',t:'food'},
+{id:'spo2-pm',s:'day',n:'Post-lunch SpO2 + 30 min rest',d:'Sit upright after eating. Never lie flat for 45 min after food.',t:'mon'},
+{id:'water',s:'day',n:'Water \u2014 2.5 litres by 4 PM',d:'Warm or room temp only. No cold water. Thin mucus = easier clearance.',t:'hyd'},
+{id:'snack-pm',s:'day',n:'Afternoon snack (4 PM)',d:'Ragi malt / peanut butter toast / steamed sweet potato.',t:'food'},
+{id:'chin-tuck',s:'day',n:'Chin tuck \u2014 10 reps \u00D7 3 today',d:'Pull chin back, hold 5s. Corrects forward head posture.',t:'pos'},
+{id:'forocot-pm',s:'evening',n:'Forocot G \u2014 1 puff (evening)',d:'Second dose. Wait 10\u201315 min. Rinse mouth after.',t:'med'},
+{id:'aerobika-pm',s:'evening',n:'Aerobika \u2014 evening 5 cycles',d:'Critical before sleep. Same technique as morning.',t:'clear'},
+{id:'core-pm',s:'evening',n:'Core + strength exercises (4\u00D7/week)',d:'Dead bug, glute bridge, bird-dog, wall sit. 20 min.',t:'core'},
+{id:'walk-pm',s:'evening',n:'Evening walk \u2014 20\u201330 min',d:'Park preferred. SpO2 should return to baseline within 3 min.',t:'ex'},
+{id:'dinner',s:'evening',n:'Dinner before 8 PM',d:'Ragi roti + kurma + dal + ghee. 500 kcal target.',t:'food'},
+{id:'post-dinner',s:'evening',n:'Post-dinner walk \u2014 10 min',d:'Reduces bloating. Do not lie flat for 45 min after eating.',t:'ex'},
+{id:'huff',s:'night',n:'Pre-sleep huff cough \u2014 3\u20134 times',d:'Sit upright, exhale forcefully. Spit mucus. Prevents night cough.',t:'clear'},
+{id:'snack-night',s:'night',n:'Bedtime protein snack',d:'Warm milk + turmeric + honey / boiled eggs / curd rice.',t:'food'},
+{id:'clean',s:'night',n:'Clean all devices',d:'Aerobika + nasal bottle + nebuliser mesh. Aspergillus grows fast.',t:'hyg'},
+{id:'sleep',s:'night',n:'Sleep \u2014 2 pillows, right side',d:'10 PM target. Air purifier on. No fan directly on face.',t:'slp'}
+];
+const SESSIONS={morning:'Morning',day:'Daytime',evening:'Evening',night:'Night'};
+const SESSION_ORDER=['morning','day','evening','night'];
+const DEFAULT_MEDS=[{id:'forocot-am-med',time:'am',icon:'\uD83D\uDC8A',n:'Forocot G',sub:'1 puff \u2014 morning inhaler'},{id:'forocot-pm-med',time:'pm',icon:'\uD83D\uDC8A',n:'Forocot G',sub:'1 puff \u2014 evening inhaler'}];
+const CHIP_CLASS={med:'chip-med',clear:'chip-clear',food:'chip-food',ex:'chip-ex',mon:'chip-mon',core:'chip-core',pos:'chip-pos',hyd:'chip-hyd',hyg:'chip-hyg',slp:'chip-slp',nasal:'chip-nasal'};
+const CHIP_LABEL={med:'Medication',clear:'Clearance',food:'Nutrition',ex:'Exercise',mon:'Monitor',core:'Core',pos:'Posture',hyd:'Hydration',hyg:'Hygiene',slp:'Sleep',nasal:'Nasal'};
+const MOODS=[{id:'great',emoji:'\uD83D\uDE04',label:'Great'},{id:'good',emoji:'\uD83D\uDE0A',label:'Good'},{id:'okay',emoji:'\uD83D\uDE10',label:'Okay'},{id:'low',emoji:'\uD83D\uDE14',label:'Low'},{id:'sad',emoji:'\uD83D\uDE22',label:'Sad'},{id:'sick',emoji:'\uD83E\uDD12',label:'Unwell'}];
+const MUCUS_COLORS=['Clear / White','Yellow','Light Green','Dark Green','Brown / Rust','Pink / Blood-tinged','Other'];
+const MUCUS_VOLUMES=['Scant (< 1 tsp)','Small (1-2 tsp)','Moderate (1-2 tbsp)','Large (> 2 tbsp)'];
+const MUCUS_CONSISTENCY=['Thin / Watery','Normal','Thick / Sticky','Very Thick'];
+
+/* ── Configurable medications ── */
+function getMeds(){const c=localStorage.getItem('lc_custom_meds');return c?JSON.parse(c):DEFAULT_MEDS}
+function saveMedsConfig(meds){localStorage.setItem('lc_custom_meds',JSON.stringify(meds))}
+function addCustomMed(){const name=document.getElementById('med-add-name').value.trim();const sub=document.getElementById('med-add-sub').value.trim();const time=document.getElementById('med-add-time').value;if(!name)return;const meds=getMeds();meds.push({id:'med-'+Date.now(),time,icon:'\uD83D\uDC8A',n:name,sub:sub||name});saveMedsConfig(meds);document.getElementById('med-add-name').value='';document.getElementById('med-add-sub').value='';renderMedConfig();renderMeds()}
+function removeCustomMed(id){saveMedsConfig(getMeds().filter(m=>m.id!==id));renderMedConfig();renderMeds()}
+function renderMedConfig(){const el=document.getElementById('med-config-list');const meds=getMeds();if(!meds.length){el.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:8px 0">No medications configured.</div>';return}el.innerHTML=meds.map(m=>'<div class="med-config-item"><div class="med-config-info"><div class="med-config-name">'+esc(m.n)+'</div><div class="med-config-sub">'+esc(m.sub)+' \u00B7 '+(m.time==='am'?'Morning':'Evening')+'</div></div><button class="med-del-btn" onclick="removeCustomMed(\''+m.id+'\')">\u2715</button></div>').join('')}
+
+/* ── Firestore DB (replaces IndexedDB) ── */
+const DB={
+  async open(){
+    try{await fsDb.enablePersistence({synchronizeTabs:false})}catch(e){console.warn('Firestore persistence:',e.code)}
+    await this._migrateFromIndexedDB();
+  },
+
+  async put(col,data){
+    const docId=data.key||data.date;
+    await fsDb.collection(col).doc(docId).set(data);
+    this._dirty(col);
+  },
+
+  async add(col,data){
+    await fsDb.collection(col).add(data);
+    this._dirty(col);
+  },
+
+  async get(col,key){
+    const doc=await fsDb.collection(col).doc(key).get();
+    return doc.exists?doc.data():null;
+  },
+
+  async getByIndex(col,field,value){
+    const snap=await fsDb.collection(col).where(field,'==',value).get();
+    return snap.docs.map(d=>d.data());
+  },
+
+  async getRange(col,field,lo,hi){
+    const snap=await fsDb.collection(col).where(field,'>=',lo).where(field,'<=',hi).get();
+    return snap.docs.map(d=>d.data());
+  },
+
+  async deleteItem(col,key){
+    await fsDb.collection(col).doc(key).delete();
+    this._dirty(col);
+  },
+
+  async getAll(col){
+    const snap=await fsDb.collection(col).get();
+    return snap.docs.map(d=>d.data());
+  },
+
+  // Cache
+  _cache:{},
+  _dirty(store){Object.keys(this._cache).forEach(k=>{if(k.startsWith(store+'_'))delete this._cache[k]})},
+  async cachedGetRange(col,field,lo,hi){const key=col+'_'+field+'_'+lo+'_'+hi;if(this._cache[key])return this._cache[key];const r=await this.getRange(col,field,lo,hi);this._cache[key]=r;return r},
+  async cachedGetByIndex(col,field,v){const key=col+'_'+field+'_'+v;if(this._cache[key])return this._cache[key];const r=await this.getByIndex(col,field,v);this._cache[key]=r;return r},
+
+  // One-time migration from IndexedDB → Firestore
+  async _migrateFromIndexedDB(){
+    if(localStorage.getItem('lc_migrated_firestore'))return;
+    try{
+      const idb=await new Promise((res,rej)=>{const r=indexedDB.open('lungcareDB',3);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('checklist'))d.createObjectStore('checklist',{keyPath:'key'}).createIndex('date','date');if(!d.objectStoreNames.contains('spo2'))d.createObjectStore('spo2',{keyPath:'id',autoIncrement:true}).createIndex('date','date');if(!d.objectStoreNames.contains('meds'))d.createObjectStore('meds',{keyPath:'key'}).createIndex('date','date');if(!d.objectStoreNames.contains('dailylog'))d.createObjectStore('dailylog',{keyPath:'date'})}});
+      const readAll=s=>new Promise((res,rej)=>{try{const tx=idb.transaction(s,'readonly').objectStore(s).getAll();tx.onsuccess=()=>res(tx.result);tx.onerror=()=>rej(tx.error)}catch{res([])}});
+      const checklist=await readAll('checklist');const spo2=await readAll('spo2');const meds=await readAll('meds');
+      let dailylog=[];try{dailylog=await readAll('dailylog')}catch{}
+      const total=checklist.length+spo2.length+meds.length+dailylog.length;
+      if(total===0){localStorage.setItem('lc_migrated_firestore','1');idb.close();return}
+      console.log('Migrating '+total+' records to Firestore...');
+      // Batch write in chunks of 400
+      const all=[...checklist.map(d=>({col:'checklist',id:d.key,d})),...spo2.map(d=>({col:'spo2',id:null,d})),...meds.map(d=>({col:'meds',id:d.key,d})),...dailylog.map(d=>({col:'dailylog',id:d.date,d}))];
+      for(let i=0;i<all.length;i+=400){
+        const batch=fsDb.batch();
+        all.slice(i,i+400).forEach(item=>{
+          const ref=item.id?fsDb.collection(item.col).doc(item.id):fsDb.collection(item.col).doc();
+          batch.set(ref,item.d);
+        });
+        await batch.commit();
+      }
+      localStorage.setItem('lc_migrated_firestore','1');
+      console.log('Migration complete!');
+      idb.close();
+    }catch(e){console.warn('Migration:',e);localStorage.setItem('lc_migrated_firestore','1')}
+  }
+};
+
+/* ── Helpers ── */
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'});
+const dayLabel=d=>['Su','Mo','Tu','We','Th','Fr','Sa'][new Date(d+'T00:00:00').getDay()];
+const dateRange=n=>{const a=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10))}return a};
+let completions=new Set(),medCompletions=new Set();
+function getTodayTasks(){const dow=new Date().getDay();return TASKS.filter(t=>!t.days||t.days.includes(dow))}
+function getAllTasksForDisplay(){const dow=new Date().getDay();return TASKS.map(t=>({...t,skipped:t.days&&!t.days.includes(dow)}))}
+function validCompletionCount(){const v=new Set(getTodayTasks().map(t=>t.id));let c=0;for(const id of completions)if(v.has(id))c++;return c}
+
+/* ── Tabs with animation ── */
+const TAB_ORDER=['today','spo2','meds','progress'];
+let currentTabIdx=0;
+function switchTab(tab,btn){
+  const newIdx=TAB_ORDER.indexOf(tab);if(newIdx===currentTabIdx)return;
+  const dir=newIdx>currentTabIdx?'slide-right':'slide-left';
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active','slide-left','slide-right'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('panel-'+tab);panel.classList.add('active');void panel.offsetWidth;panel.classList.add(dir);
+  btn.classList.add('active');currentTabIdx=newIdx;
+  if(tab==='progress')renderProgress();
+  if(tab==='spo2'){renderSpo2History();renderSpo2Avg();renderSpo2Chart()}
+  if(tab==='meds')renderMeds();
+}
+
+/* ── Checklist ── */
+function buildChecklist(){
+  const body=document.getElementById('checklist-body');body.innerHTML='';
+  const tt=getAllTasksForDisplay();const g={};SESSION_ORDER.forEach(s=>g[s]=[]);tt.forEach(t=>(g[t.s]||[]).push(t));
+  SESSION_ORDER.forEach(s=>{
+    if(!g[s].length)return;
+    const l=document.createElement('div');l.className='session-label';l.textContent=SESSIONS[s];body.appendChild(l);
+    const c=document.createElement('div');c.className='card';c.style.margin='0 16px';
+    g[s].forEach(task=>{
+      const it=document.createElement('div');
+      if(task.skipped){it.className='task-item skipped';it.innerHTML='<div class="task-check"></div><div class="task-content"><div class="task-name">'+esc(task.n)+'</div><div class="task-skip-note">Not scheduled today</div></div>'}
+      else{it.className='task-item'+(completions.has(task.id)?' done':'');it.dataset.id=task.id;it.innerHTML='<div class="task-check"></div><div class="task-content"><div class="task-name">'+esc(task.n)+'</div><div class="task-detail">'+esc(task.d)+'</div><span class="chip '+(CHIP_CLASS[task.t]||'chip-mon')+'">'+(CHIP_LABEL[task.t]||'')+'</span></div>';it.addEventListener('click',()=>toggleTask(task.id,it))}
+      c.appendChild(it);
+    });body.appendChild(c);
+  });
+}
+
+/* ── Undo ── */
+let undoPending=null,undoTimer=null;
+function showUndo(taskId){clearTimeout(undoTimer);undoPending={taskId};document.getElementById('undo-text').textContent='Task unchecked';document.getElementById('undo-toast').classList.add('visible');undoTimer=setTimeout(()=>{undoPending=null;document.getElementById('undo-toast').classList.remove('visible')},4000)}
+async function undoLastAction(){if(!undoPending)return;clearTimeout(undoTimer);const{taskId}=undoPending;undoPending=null;document.getElementById('undo-toast').classList.remove('visible');completions.add(taskId);await DB.put('checklist',{key:today()+'_'+taskId,date:today(),taskId,ts:Date.now()});buildChecklist();updateProgress();await saveStreak()}
+
+async function toggleTask(id,el){
+  if(navigator.vibrate)navigator.vibrate(15);const dk=today(),k=dk+'_'+id;
+  if(completions.has(id)){completions.delete(id);el.classList.remove('done');await DB.deleteItem('checklist',k);showUndo(id)}
+  else{completions.add(id);el.classList.add('done');await DB.put('checklist',{key:k,date:dk,taskId:id,ts:Date.now()})}
+  updateProgress();await saveStreak();
+}
+
+function updateProgress(){
+  const done=validCompletionCount(),total=getTodayTasks().length,pct=total?Math.round((done/total)*100):0;
+  const circ=2*Math.PI*30;
+  document.getElementById('ring-fill').style.strokeDashoffset=circ*(1-pct/100);
+  document.getElementById('ring-pct').textContent=pct+'%';document.getElementById('summary-pct').textContent=pct+'%';
+  document.getElementById('tasks-done').textContent=done+' of '+total+' tasks done';
+  const msgs=[[0,"Let's start strong today!"],[25,'Good start \u2014 keep going!'],[50,'Halfway there!'],[75,'Almost done \u2014 finish strong!'],[100,'100% complete! Great work!']];
+  let msg=msgs[0][1];for(const[t,m]of msgs)if(pct>=t)msg=m;document.getElementById('summary-sub').textContent=msg;
+}
+
+async function loadTodayChecklist(){const r=await DB.cachedGetByIndex('checklist','date',today());const valid=new Set(TASKS.map(t=>t.id));completions=new Set(r.map(x=>x.taskId).filter(id=>valid.has(id)))}
+
+async function saveStreak(){
+  const done=validCompletionCount(),total=getTodayTasks().length,pct=total?Math.round((done/total)*100):0;
+  await DB.put('checklist',{key:'day_'+today(),date:today(),taskId:'__summary__',pct,done,total,ts:Date.now()});await renderStreak();
+}
+
+async function renderStreak(){
+  const days=dateRange(30),lo=days[0],hi=days[days.length-1];
+  const all=await DB.cachedGetRange('checklist','date',lo,hi);
+  const sm={};for(const r of all)if(r.taskId==='__summary__')sm[r.date]=r.pct;
+  let streak=0;const ts=today();for(const d of[...days].reverse()){if(d>ts)continue;if((sm[d]||0)>=70)streak++;else if(d<ts)break}
+  let best=0,cur=0;for(const d of days){if((sm[d]||0)>=70){cur++;best=Math.max(best,cur)}else cur=0}
+  document.getElementById('streak-header').textContent='\uD83D\uDD25 '+streak;
+  document.getElementById('streak-big').textContent=streak;document.getElementById('streak-best-text').textContent='Best streak: '+best+' days';
+  return{summaries:sm,streak};
+}
+
+/* ── SpO2 ── */
+function updateSpo2Display(){const v=parseInt(document.getElementById('inp-spo2').value);const d=document.getElementById('spo2-display'),s=document.getElementById('spo2-status');if(!v){d.innerHTML='&mdash;';s.textContent='';return}d.textContent=v+'%';d.className='spo2-value-display '+(v>=95?'spo2-ok':v>=93?'spo2-warn':'spo2-bad');s.textContent=v>=95?'\u2713 Normal range':v>=93?'\u26A0 Slightly low \u2014 rest & monitor':'\u26D4 Low \u2014 call doctor immediately';s.style.color=v>=95?'var(--success)':v>=93?'var(--warn)':'var(--danger)'}
+const _spo2Inp=document.getElementById('inp-spo2');if(_spo2Inp)_spo2Inp.addEventListener('input',updateSpo2Display);
+
+function showSpo2Error(msg){const el=document.getElementById('spo2-error');el.textContent=msg;el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),3000)}
+
+async function saveSpo2(){const v=parseInt(document.getElementById('inp-spo2').value);if(!v||v<70||v>100){showSpo2Error('Enter a valid SpO2 value (70\u2013100)');return}await DB.add('spo2',{date:today(),time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),spo2:v,pulse:document.getElementById('inp-pulse').value||null,feeling:document.getElementById('inp-feeling').value,notes:document.getElementById('inp-notes').value,ts:Date.now()});if(navigator.vibrate)navigator.vibrate(20);['inp-spo2','inp-pulse','inp-feeling','inp-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('spo2-display').innerHTML='&mdash;';document.getElementById('spo2-status').textContent='';renderSpo2History();renderSpo2Avg();renderSpo2Chart()}
+
+async function renderSpo2Avg(){const days=dateRange(7);const recs=await DB.cachedGetRange('spo2','date',days[0],days[days.length-1]);const valid=recs.filter(x=>x.spo2);const el=document.getElementById('spo2-avg-wrap');if(!valid.length){el.innerHTML='';return}const avg=Math.round(valid.reduce((s,r)=>s+r.spo2,0)/valid.length);const min=Math.min(...valid.map(r=>r.spo2)),max=Math.max(...valid.map(r=>r.spo2));const cls=avg>=95?'spo2-ok':avg>=93?'spo2-warn':'spo2-bad';el.innerHTML='<div class="spo2-avg-card"><div class="spo2-avg-val '+cls+'">'+avg+'%</div><div class="spo2-avg-info"><div class="spo2-avg-label">7-day average SpO2</div><div class="spo2-avg-range">Range: '+min+'% \u2013 '+max+'% \u00B7 '+valid.length+' readings</div></div></div>'}
+
+/* ── SpO2 Trend Chart ── */
+async function renderSpo2Chart(){
+  const wrap=document.getElementById('spo2-chart-wrap');
+  const days=dateRange(7);const recs=await DB.cachedGetRange('spo2','date',days[0],days[days.length-1]);
+  const byDate={};for(const r of recs)if(r.spo2){if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r.spo2)}
+  const points=days.map(d=>({date:d,avg:byDate[d]?Math.round(byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length):null,label:dayLabel(d)})).filter(p=>p.avg!==null);
+  if(points.length<2){wrap.innerHTML='';return}
+  const W=320,H=160,pL=32,pR=10,pT=20,pB=26,cW=W-pL-pR,cH=H-pT-pB;
+  const fMin=88,fMax=100,fR=fMax-fMin;
+  const fy=v=>pT+cH-((v-fMin)/fR)*cH;const fx=i=>pL+(i/(points.length-1))*cW;
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">';
+  svg+='<rect x="'+pL+'" y="'+fy(fMax)+'" width="'+cW+'" height="'+(fy(95)-fy(fMax))+'" fill="#ECFDF5"/>';
+  svg+='<rect x="'+pL+'" y="'+fy(95)+'" width="'+cW+'" height="'+(fy(93)-fy(95))+'" fill="#FFFBEB"/>';
+  svg+='<rect x="'+pL+'" y="'+fy(93)+'" width="'+cW+'" height="'+(fy(fMin)-fy(93))+'" fill="#FEF2F2"/>';
+  for(let v=90;v<=100;v+=2){const ly=fy(v);svg+='<line x1="'+pL+'" y1="'+ly+'" x2="'+(W-pR)+'" y2="'+ly+'" stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="3,3"/>';svg+='<text x="'+(pL-5)+'" y="'+(ly+3)+'" text-anchor="end" font-size="8" font-family="Inter,sans-serif" fill="#94A3B8" font-weight="700">'+v+'</text>'}
+  svg+='<line x1="'+pL+'" y1="'+fy(95)+'" x2="'+(W-pR)+'" y2="'+fy(95)+'" stroke="#10B981" stroke-width="0.7" opacity=".4"/>';
+  svg+='<line x1="'+pL+'" y1="'+fy(93)+'" x2="'+(W-pR)+'" y2="'+fy(93)+'" stroke="#EF4444" stroke-width="0.7" opacity=".4"/>';
+  let areaD='M'+fx(0).toFixed(1)+','+fy(points[0].avg).toFixed(1);
+  for(let i=1;i<points.length;i++)areaD+=' L'+fx(i).toFixed(1)+','+fy(points[i].avg).toFixed(1);
+  areaD+=' L'+fx(points.length-1).toFixed(1)+','+(pT+cH)+' L'+fx(0).toFixed(1)+','+(pT+cH)+' Z';
+  svg+='<path d="'+areaD+'" fill="url(#chartGrad)" opacity=".3"/>';
+  svg+='<defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#6366F1" stop-opacity="0"/></linearGradient></defs>';
+  let pathD=points.map((p,i)=>(i===0?'M':'L')+fx(i).toFixed(1)+','+fy(p.avg).toFixed(1)).join(' ');
+  svg+='<path d="'+pathD+'" fill="none" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  points.forEach((p,i)=>{const cx=fx(i),cy=fy(p.avg);const dc=p.avg>=95?'#10B981':p.avg>=93?'#F59E0B':'#EF4444';svg+='<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="'+dc+'" stroke="white" stroke-width="2"/>';svg+='<text x="'+cx+'" y="'+(cy-9)+'" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#1E293B" font-weight="800">'+p.avg+'</text>'});
+  points.forEach((p,i)=>{svg+='<text x="'+fx(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#94A3B8" font-weight="700">'+p.label+'</text>'});
+  svg+='</svg>';
+  wrap.innerHTML='<div class="spo2-chart"><div class="card-header"><span class="card-title">7-Day SpO2 Trend</span></div>'+svg+'</div>';
+}
+
+async function renderSpo2History(){const days=dateRange(14);const recs=await DB.cachedGetRange('spo2','date',days[0],days[days.length-1]);const valid=recs.filter(x=>x.spo2).sort((a,b)=>b.ts-a.ts);const el=document.getElementById('spo2-history');if(!valid.length){el.innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><p>No readings yet.<br>Log your first SpO2 reading above.</p></div>';return}el.innerHTML=valid.slice(0,20).map(r=>{const c=r.spo2>=95?'spo2-ok':r.spo2>=93?'spo2-warn':'spo2-bad';return'<div class="log-item"><div class="log-spo2 '+c+'">'+r.spo2+'%</div><div class="log-meta"><div class="log-date">'+esc(fmtDate(r.date))+' \u00B7 '+esc(r.time)+(r.feeling?' \u00B7 '+esc(r.feeling):'')+'</div>'+(r.notes?'<div class="log-notes">'+esc(r.notes)+'</div>':'')+'</div>'+(r.pulse?'<div class="log-pulse">'+esc(r.pulse)+'<br><span style="font-size:10px;color:var(--text-3)">bpm</span></div>':'')+'</div>'}).join('')}
+
+/* ── Meds ── */
+async function loadTodayMeds(){const r=await DB.cachedGetByIndex('meds','date',today());medCompletions=new Set(r.map(x=>x.medId))}
+function renderMeds(){const meds=getMeds();const b=document.getElementById('meds-body');const amMeds=meds.filter(m=>m.time==='am'),pmMeds=meds.filter(m=>m.time==='pm');let html='';if(amMeds.length)html+='<div class="med-time-header">Morning medications</div><div class="card" style="margin:0 16px 8px">'+amMeds.map(medHtml).join('')+'</div>';if(pmMeds.length)html+='<div class="med-time-header">Evening medications</div><div class="card" style="margin:0 16px 16px">'+pmMeds.map(medHtml).join('')+'</div>';if(!meds.length)html='<div class="empty-state" style="padding:40px 20px"><p>No medications configured.<br>Add them in Settings.</p></div>';b.innerHTML=html;b.querySelectorAll('.med-item').forEach(el=>{el.addEventListener('click',()=>toggleMed(el.dataset.id))})}
+function medHtml(m){const d=medCompletions.has(m.id);return'<div class="med-item'+(d?' taken':'')+'" data-id="'+esc(m.id)+'"><div class="med-icon">'+(d?'\u2713':m.icon)+'</div><div class="med-info"><div class="med-name">'+esc(m.n)+'</div><div class="med-sub">'+esc(m.sub)+'</div></div><div class="med-status">'+(d?'Taken':'Pending')+'</div></div>'}
+async function toggleMed(id){if(navigator.vibrate)navigator.vibrate(15);const dk=today(),k=dk+'_'+id;if(medCompletions.has(id)){medCompletions.delete(id);await DB.deleteItem('meds',k)}else{medCompletions.add(id);await DB.put('meds',{key:k,date:dk,medId:id,ts:Date.now()})}renderMeds()}
+
+/* ── Evening Reflection (Mood + Mucus) ── */
+let dailyLog=null;
+async function loadDailyLog(){try{dailyLog=await DB.get('dailylog',today())}catch{dailyLog=null}}
+
+function renderReflection(){
+  const wrap=document.getElementById('reflection-wrap');const saved=dailyLog&&dailyLog.mood;
+  let h='<div class="reflection-card"><div class="reflection-header"><span class="reflection-header-emoji">\uD83C\uDF19</span>Evening Reflection';
+  if(saved)h+=' <span class="reflection-saved">\u2713 Saved</span>';
+  h+='</div>';
+  h+='<div class="reflection-section"><div class="reflection-label">How was your day?</div><div class="mood-grid">';
+  MOODS.forEach(m=>{const sel=dailyLog&&dailyLog.mood===m.id?' selected':'';h+='<button class="mood-btn'+sel+'" data-mood="'+m.id+'"><span class="mood-emoji">'+m.emoji+'</span><span class="mood-label">'+m.label+'</span></button>'});
+  h+='</div></div>';
+  h+='<div class="reflection-section"><div class="reflection-label">Sputum Log</div>';
+  const mc=dailyLog?.mucusColor||'',mv=dailyLog?.mucusVolume||'',mcon=dailyLog?.mucusConsistency||'';
+  h+='<div class="mucus-row"><div class="field"><label>Color</label><select id="mucus-color"><option value="">Select color</option>';
+  MUCUS_COLORS.forEach(c=>h+='<option value="'+esc(c)+'"'+(mc===c?' selected':'')+'>'+esc(c)+'</option>');
+  h+='</select></div><div class="field"><label>Volume</label><select id="mucus-volume"><option value="">Select volume</option>';
+  MUCUS_VOLUMES.forEach(v=>h+='<option value="'+esc(v)+'"'+(mv===v?' selected':'')+'>'+esc(v)+'</option>');
+  h+='</select></div></div>';
+  const showCustom=mc==='Other';
+  h+='<div class="field" id="mucus-custom-wrap" style="margin-bottom:10px;'+(showCustom?'':'display:none')+'"><label>Describe color</label><input type="text" id="mucus-custom" value="'+esc(dailyLog?.mucusCustomColor||'')+'" placeholder="e.g. greenish-yellow"></div>';
+  h+='<div class="mucus-row"><div class="field"><label>Consistency</label><select id="mucus-consistency"><option value="">Select</option>';
+  MUCUS_CONSISTENCY.forEach(c=>h+='<option value="'+esc(c)+'"'+(mcon===c?' selected':'')+'>'+esc(c)+'</option>');
+  h+='</select></div><div class="field"></div></div></div>';
+  h+='<div class="reflection-section"><div class="field"><label>Notes (optional)</label><textarea id="reflection-notes" placeholder="How was your breathing today?">'+esc(dailyLog?.notes||'')+'</textarea></div></div>';
+  h+='<div style="padding:0 18px 18px"><button class="btn-primary" onclick="saveReflection()">Save reflection</button></div></div>';
+  wrap.innerHTML=h;
+  wrap.querySelectorAll('.mood-btn').forEach(b=>b.addEventListener('click',()=>{wrap.querySelectorAll('.mood-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')}));
+  const colorSel=document.getElementById('mucus-color');
+  if(colorSel)colorSel.addEventListener('change',()=>{document.getElementById('mucus-custom-wrap').style.display=colorSel.value==='Other'?'':'none'});
+}
+
+async function saveReflection(){
+  const mood=document.querySelector('.mood-btn.selected')?.dataset.mood||'';
+  const mucusColor=document.getElementById('mucus-color')?.value||'';
+  const mucusCustomColor=document.getElementById('mucus-custom')?.value||'';
+  const mucusVolume=document.getElementById('mucus-volume')?.value||'';
+  const mucusConsistency=document.getElementById('mucus-consistency')?.value||'';
+  const notes=document.getElementById('reflection-notes')?.value||'';
+  dailyLog={date:today(),mood,mucusColor,mucusCustomColor,mucusVolume,mucusConsistency,notes,ts:Date.now()};
+  await DB.put('dailylog',dailyLog);
+  if(navigator.vibrate)navigator.vibrate(20);
+  renderReflection();renderReflectionHistory();
+}
+
+async function renderReflectionHistory(){
+  const all=await DB.getAll('dailylog');
+  const recent=all.filter(l=>l.date!==today()&&l.mood).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const existing=document.getElementById('reflection-history-card');if(existing)existing.remove();
+  if(!recent.length)return;
+  const wrap=document.getElementById('reflection-wrap');
+  const card=document.createElement('div');card.className='card';card.style.margin='0 16px 16px';card.id='reflection-history-card';
+  let h='<div class="card-header"><span class="card-title">Recent reflections</span></div>';
+  recent.forEach(l=>{
+    const mood=MOODS.find(m=>m.id===l.mood);
+    h+='<div class="reflection-log-item"><div class="reflection-log-emoji">'+(mood?mood.emoji:'&mdash;')+'</div><div class="reflection-log-info"><div class="reflection-log-date">'+esc(fmtDate(l.date))+'</div>';
+    if(mood)h+='<div class="reflection-log-mood">'+mood.label+'</div>';
+    let det=[];if(l.mucusColor)det.push(l.mucusColor==='Other'?(l.mucusCustomColor||'Other'):l.mucusColor);if(l.mucusVolume)det.push(l.mucusVolume);if(l.notes)det.push(l.notes);
+    if(det.length)h+='<div class="reflection-log-details">'+esc(det.join(' \u00B7 '))+'</div>';
+    h+='</div></div>';
+  });
+  card.innerHTML=h;wrap.appendChild(card);
+}
+
+/* ── Progress ── */
+async function renderProgress(){
+  const{summaries:sm}=await renderStreak();const wk=dateRange(7),ts=today();
+  document.getElementById('week-grid').innerHTML=wk.map(d=>{const p=sm[d]||0,iT=d===ts,iF=d>ts;let c=iF?'future':p>=80?'great':p>=50?'good':p>=20?'partial':'miss';if(iT)c+=' today';return'<div class="week-day"><div class="week-label">'+dayLabel(d)+'</div><div class="week-dot '+c+'">'+(iF?'':p?p+'%':'\u2014')+'</div></div>'}).join('');
+  const vw=wk.filter(d=>d<=ts&&sm[d]!==undefined),avg=vw.length?Math.round(vw.reduce((s,d)=>s+(sm[d]||0),0)/vw.length):0;
+  document.getElementById('stat-avg').textContent=avg+'%';
+  const all30=dateRange(30);const tracked=all30.filter(d=>d<=ts&&sm[d]!==undefined);
+  document.getElementById('stat-total').textContent=tracked.length;
+  document.getElementById('stat-partial').textContent=tracked.filter(d=>(sm[d]||0)>=50&&(sm[d]||0)<70).length;
+  document.getElementById('stat-perfect').textContent=tracked.filter(d=>(sm[d]||0)===100).length;
+  const hist=dateRange(14).filter(d=>d<=ts).reverse(),hEl=document.getElementById('history-list');
+  if(!hist.some(d=>sm[d])){hEl.innerHTML='<div class="empty-state" style="padding:24px"><p>Complete some tasks to see history.</p></div>';return}
+  hEl.innerHTML=hist.map(d=>{const p=sm[d]||0,clr=p>=80?'var(--pri)':p>=50?'var(--warn)':'var(--danger)';return'<div class="history-item"><div class="history-date">'+esc(fmtDate(d))+'</div><div class="history-bar-wrap"><div class="history-bar" style="width:'+p+'%;background:'+clr+'"></div></div><div class="history-pct" style="color:'+clr+'">'+p+'%</div></div>'}).join('');
+}
+
+/* ── FCM Notifications ── */
+function isNotifEnabled(){return localStorage.getItem('lc_fcm_enabled')==='1'}
+
+async function toggleNotifications(){
+  if(isNotifEnabled()){
+    // Disable
+    try{await fbMessaging.deleteToken()}catch{}
+    try{await fsDb.collection('devices').doc('default').delete()}catch{}
+    localStorage.removeItem('lc_fcm_enabled');localStorage.removeItem('lc_fcm_token');
+  }else{
+    // Enable
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){document.getElementById('notif-status').textContent='Permission denied. Enable in browser settings.';return}
+    try{
+      const reg=await navigator.serviceWorker.getRegistration();
+      const token=await fbMessaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
+      await fsDb.collection('devices').doc('default').set({token,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      localStorage.setItem('lc_fcm_enabled','1');localStorage.setItem('lc_fcm_token',token);
+      document.getElementById('notif-status').textContent='Notifications enabled! You\u2019ll get reminders for each task.';
+    }catch(e){
+      console.error('FCM setup:',e);
+      document.getElementById('notif-status').textContent='Setup failed: '+e.message;return;
+    }
+  }
+  updateNotifToggle();
+}
+
+function updateNotifToggle(){
+  const el=document.getElementById('notif-toggle');if(el)el.classList.toggle('on',isNotifEnabled());
+  const status=document.getElementById('notif-status');
+  if(status)status.textContent=isNotifEnabled()?'Reminders active \u2014 15 daily notifications':'';
+}
+
+// Refresh FCM token on each app start (tokens can rotate)
+async function refreshFCMToken(){
+  if(!isNotifEnabled())return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    const token=await fbMessaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
+    const oldToken=localStorage.getItem('lc_fcm_token');
+    if(token!==oldToken){
+      await fsDb.collection('devices').doc('default').set({token,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      localStorage.setItem('lc_fcm_token',token);
+      console.log('FCM token refreshed');
+    }
+  }catch(e){console.warn('FCM refresh:',e)}
+}
+
+// Handle foreground messages
+fbMessaging.onMessage((payload)=>{
+  const title=payload.notification?.title||payload.data?.title||'LungCare';
+  const body=payload.notification?.body||payload.data?.body||'';
+  // Show native notification even in foreground
+  if(Notification.permission==='granted'){
+    new Notification(title,{body,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%236366F1"/><text x="32" y="44" font-size="32" text-anchor="middle" fill="white">\uD83E\uDEC1</text></svg>',tag:payload.data?.tag||'lungcare'});
+  }
+});
+
+/* ── Settings ── */
+function showSettings(){renderMedConfig();updateNotifToggle();document.getElementById('settings-modal').classList.add('visible')}
+function hideSettings(){document.getElementById('settings-modal').classList.remove('visible')}
+function resetPin(){localStorage.removeItem('lc_pin_hash');localStorage.removeItem('lc_pin_salt');localStorage.removeItem('lc_bio_cred');location.reload()}
+
+/* ── Export / Import ── */
+async function exportData(){
+  const data={version:3,exported:new Date().toISOString(),checklist:await DB.getAll('checklist'),spo2:await DB.getAll('spo2'),meds:await DB.getAll('meds'),dailylog:await DB.getAll('dailylog'),customMeds:localStorage.getItem('lc_custom_meds')||null};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lungcare-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+async function importData(input){
+  const file=input.files[0];if(!file)return;
+  try{const text=await file.text();const data=JSON.parse(text);if(!data.checklist||!data.spo2)throw new Error('Invalid backup');
+    // Clear Firestore collections
+    for(const col of['checklist','spo2','meds','dailylog']){
+      const snap=await fsDb.collection(col).get();
+      for(let i=0;i<snap.docs.length;i+=400){
+        const batch=fsDb.batch();snap.docs.slice(i,i+400).forEach(doc=>batch.delete(doc.ref));await batch.commit();
+      }
+    }
+    for(const item of data.checklist)await DB.put('checklist',item);
+    for(const item of data.spo2){if(item.id)await fsDb.collection('spo2').doc(String(item.id)).set(item);else await DB.add('spo2',item)}
+    if(data.meds)for(const item of data.meds)await DB.put('meds',item);
+    if(data.dailylog)for(const item of data.dailylog)await DB.put('dailylog',item);
+    if(data.customMeds)localStorage.setItem('lc_custom_meds',data.customMeds);
+    location.reload();
+  }catch(e){showSpo2Error('Import failed: '+e.message)}input.value='';
+}
+
+/* ── SW update ── */
+function initSW(){if(!('serviceWorker'in navigator))return;navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW:',e));navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='SW_UPDATED')document.getElementById('update-banner').classList.add('visible')})}
+
+/* ── PWA install ── */
+function updateHeader(){document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.remove('hidden')});
+document.getElementById('install-btn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')dismissInstall();deferredPrompt=null};
+function dismissInstall(){document.getElementById('install-banner').classList.add('hidden')}
+window.addEventListener('appinstalled',dismissInstall);
+
+/* ── Init ── */
+async function startApp(){
+  await DB.open();
+  updateHeader();
+  await loadTodayChecklist();await loadTodayMeds();await loadDailyLog();
+  buildChecklist();updateProgress();await renderStreak();renderMeds();
+  renderReflection();renderReflectionHistory();
+  if(validCompletionCount()>0)await saveStreak();
+  // Refresh FCM token silently
+  refreshFCMToken();
+}
+initSW();Auth.initAuth().catch(console.error);

@@ -5,8 +5,8 @@
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0C0F1A",
-  "theme_color": "#0C0F1A",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%236366F1'/><path d='M66 130 C54 118 50 96 54 74 C58 56 70 48 80 54 C84 57 86 63 86 72 L86 138 C80 142 72 138 66 130Z' fill='white' opacity='.95'/><path d='M126 130 C138 118 142 96 138 74 C134 56 122 48 112 54 C108 57 106 63 106 72 L106 138 C112 142 120 138 126 130Z' fill='white' opacity='.95'/><rect x='90' y='38' width='12' height='42' rx='6' fill='white'/></svg>",
@@ -21,5 +21,6 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["health", "medical"]
+  "categories": ["health", "medical"],
+  "gcm_sender_id": "103953800507"
 }
