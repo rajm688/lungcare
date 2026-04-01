@@ -1,4 +1,4 @@
-const CACHE = 'lungcare-v1';
+const CACHE = 'lungcare-v3';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {

@@ -5,48 +5,49 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#0F766E">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0C0F1A">
 <title>LungCare</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --teal: #0F766E; --teal-d: #0D5F58; --teal-l: #CCFBF1; --teal-ll: #F0FDF9;
-  --text: #0F172A; --text-2: #475569; --text-3: #94A3B8;
-  --bg: #F8FAFC; --surface: #FFFFFF; --border: #E2E8F0;
-  --success: #059669; --success-l: #DCFCE7;
-  --warn: #D97706; --warn-l: #FEF3C7;
-  --danger: #DC2626; --danger-l: #FEE2E2;
-  --info: #2563EB; --info-l: #DBEAFE;
-  --nav-h: 64px; --header-h: 64px;
+  --pri: #6366F1; --pri-d: #4F46E5; --pri-l: #E0E7FF; --pri-ll: #EEF2FF;
+  --accent: #F59E0B; --accent-l: #FEF3C7;
+  --text: #F1F5F9; --text-2: #94A3B8; --text-3: #64748B;
+  --bg: #0C0F1A; --surface: #161B2E; --surface-2: #1E2540; --border: #2A3150;
+  --success: #34D399; --success-l: rgba(52,211,153,.12);
+  --warn: #FBBF24; --warn-l: rgba(251,191,36,.12);
+  --danger: #F87171; --danger-l: rgba(248,113,113,.12);
+  --info: #60A5FA; --info-l: rgba(96,165,250,.12);
+  --nav-h: 64px; --header-h: 60px;
   --safe-b: env(safe-area-inset-bottom, 0px);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'DM Sans', -apple-system, sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
 
-/* ── Layout ── */
 #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .app-header {
-  height: var(--header-h); background: var(--teal); color: white;
+  height: var(--header-h); background: var(--surface);
   display: flex; align-items: center; padding: 0 16px; gap: 12px;
   flex-shrink: 0; padding-top: env(safe-area-inset-top, 0);
-  box-shadow: 0 1px 8px rgba(15,118,110,.3);
+  border-bottom: 1px solid var(--border);
 }
-.header-logo { width: 32px; height: 32px; }
+.header-logo { width: 30px; height: 30px; }
 .header-info { flex: 1; }
-.header-title { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
-.header-date { font-size: 12px; opacity: .8; }
+.header-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
+.header-date { font-size: 11px; color: var(--text-3); }
 .streak-badge {
   display: flex; align-items: center; gap: 4px;
-  background: rgba(255,255,255,.15); border-radius: 20px;
-  padding: 4px 10px; font-size: 13px; font-weight: 600;
+  background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2);
+  border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--accent);
 }
 
 .tabs { flex: 1; overflow: hidden; position: relative; }
 .tab-panel { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; display: none; padding-bottom: calc(var(--nav-h) + var(--safe-b) + 8px); }
 .tab-panel.active { display: block; }
+.tab-panel::-webkit-scrollbar { display: none; }
 
 .bottom-nav {
   height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
@@ -59,42 +60,39 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   color: var(--text-3); font-size: 10px; font-weight: 600;
   font-family: inherit; letter-spacing: .3px; padding: 8px 4px; transition: color .15s;
 }
-.nav-btn.active { color: var(--teal); }
+.nav-btn.active { color: var(--pri); }
 .nav-btn svg { width: 22px; height: 22px; }
 
-/* ── Cards & Shared ── */
-.page-pad { padding: 16px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
 .card-header { padding: 12px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.card-title { font-size: 13px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px; }
-.chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .8px; }
+.chip { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px; letter-spacing: .3px; }
 .chip-med { background: var(--info-l); color: var(--info); }
-.chip-clear { background: var(--teal-l); color: var(--teal-d); }
+.chip-clear { background: rgba(99,102,241,.12); color: #A5B4FC; }
 .chip-food { background: var(--success-l); color: var(--success); }
 .chip-ex { background: var(--warn-l); color: var(--warn); }
-.chip-mon { background: var(--border); color: var(--text-2); }
+.chip-mon { background: rgba(100,116,139,.15); color: var(--text-3); }
 .chip-core { background: var(--danger-l); color: var(--danger); }
-.chip-pos { background: #F3E8FF; color: #7C3AED; }
-.chip-hyd { background: #E0F2FE; color: #0369A1; }
-.chip-hyg { background: #F0FDF4; color: #166534; }
-.chip-slp { background: #F5F3FF; color: #6D28D9; }
-.chip-nasal { background: #E0F2FE; color: #0369A1; }
+.chip-pos { background: rgba(192,132,252,.12); color: #C084FC; }
+.chip-hyd { background: rgba(56,189,248,.12); color: #38BDF8; }
+.chip-hyg { background: rgba(52,211,153,.12); color: #34D399; }
+.chip-slp { background: rgba(167,139,250,.12); color: #A78BFA; }
+.chip-nasal { background: rgba(56,189,248,.12); color: #38BDF8; }
 
-/* ── Today Tab ── */
 .today-summary {
-  background: var(--teal); color: white; padding: 20px 16px 24px;
+  background: linear-gradient(135deg, var(--pri-d) 0%, #4338CA 100%);
+  color: white; padding: 20px 16px 24px;
   display: flex; align-items: center; gap: 20px;
 }
 .progress-ring-wrap { flex-shrink: 0; position: relative; width: 72px; height: 72px; }
 .progress-ring-wrap svg { transform: rotate(-90deg); }
-.ring-bg { stroke: rgba(255,255,255,.2); fill: none; }
+.ring-bg { stroke: rgba(255,255,255,.15); fill: none; }
 .ring-fill { stroke: white; fill: none; stroke-linecap: round; transition: stroke-dashoffset .4s ease; }
 .ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
 .summary-text .pct { font-size: 28px; font-weight: 700; line-height: 1; }
-.summary-text .sub { font-size: 13px; opacity: .85; margin-top: 2px; }
-.summary-text .tasks-done { font-size: 12px; opacity: .7; margin-top: 4px; }
+.summary-text .sub { font-size: 13px; opacity: .8; margin-top: 2px; }
+.summary-text .tasks-done { font-size: 12px; opacity: .6; margin-top: 4px; }
 
-.session-group { }
 .session-label {
   font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase;
   letter-spacing: .8px; padding: 14px 16px 6px;
@@ -102,55 +100,50 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .task-item {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 12px 16px; border-bottom: 1px solid var(--border);
-  cursor: pointer; transition: background .1s; user-select: none; background: var(--surface);
+  cursor: pointer; transition: background .15s; user-select: none; background: var(--surface);
 }
 .task-item:last-child { border-bottom: none; }
-.task-item:active { background: var(--bg); }
-.task-item.done { background: var(--teal-ll); }
-.task-item.done .task-name { color: var(--teal-d); text-decoration: line-through; text-decoration-color: var(--teal); }
-.task-item.done .task-detail { color: var(--teal-d); opacity: .6; }
+.task-item:active { background: var(--surface-2); }
+.task-item.done { background: rgba(99,102,241,.06); }
+.task-item.done .task-name { color: #A5B4FC; text-decoration: line-through; text-decoration-color: rgba(99,102,241,.4); }
+.task-item.done .task-detail { opacity: .4; }
 .task-check {
   width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border);
   flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center;
-  transition: all .15s; background: white;
+  transition: all .15s; background: var(--surface-2);
 }
-.task-item.done .task-check { background: var(--teal); border-color: var(--teal); }
+.task-item.done .task-check { background: var(--pri); border-color: var(--pri); }
 .task-check::after { content: ''; display: none; width: 11px; height: 7px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg) translate(1px, -1px); }
 .task-item.done .task-check::after { display: block; }
 .task-content { flex: 1; min-width: 0; }
 .task-name { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
 .task-detail { font-size: 12px; color: var(--text-2); line-height: 1.4; margin-bottom: 5px; }
 
-/* ── SpO2 Tab ── */
 .spo2-entry { padding: 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .entry-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 .entry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+.field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
 .field input, .field select, .field textarea {
   width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px;
-  font-size: 16px; font-family: inherit; color: var(--text); background: var(--bg);
+  font-size: 16px; font-family: inherit; color: var(--text); background: var(--surface-2);
   outline: none; transition: border-color .15s;
 }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--teal); background: white; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--pri); background: var(--bg); }
+.field select { color: var(--text-2); }
+.field select option { background: var(--surface); color: var(--text); }
 .field textarea { font-size: 14px; resize: none; height: 60px; }
-.spo2-value-display {
-  text-align: center; font-size: 48px; font-weight: 700; line-height: 1;
-  transition: color .3s;
-}
+.spo2-value-display { text-align: center; font-size: 48px; font-weight: 700; line-height: 1; transition: color .3s; }
 .spo2-ok { color: var(--success); }
 .spo2-warn { color: var(--warn); }
 .spo2-bad { color: var(--danger); }
 .spo2-status { text-align: center; font-size: 13px; font-weight: 600; margin-top: 4px; }
 .btn-primary {
-  width: 100%; padding: 13px; background: var(--teal); color: white; border: none;
+  width: 100%; padding: 13px; background: var(--pri); color: white; border: none;
   border-radius: 12px; font-size: 15px; font-weight: 600; font-family: inherit;
-  cursor: pointer; margin-top: 4px; transition: background .15s;
+  cursor: pointer; margin-top: 4px; transition: all .15s;
 }
-.btn-primary:active { background: var(--teal-d); }
-.log-item {
-  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-  border-bottom: 1px solid var(--border); background: var(--surface);
-}
+.btn-primary:active { background: var(--pri-d); transform: scale(.98); }
+.log-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .log-item:last-child { border-bottom: none; }
 .log-spo2 { font-size: 22px; font-weight: 700; min-width: 52px; }
 .log-meta { flex: 1; }
@@ -158,648 +151,242 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .log-notes { font-size: 12px; color: var(--text-3); margin-top: 1px; }
 .log-pulse { font-size: 12px; color: var(--text-2); }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-3); }
-.empty-state svg { margin: 0 auto 12px; display: block; opacity: .4; }
+.empty-state svg { margin: 0 auto 12px; display: block; opacity: .3; }
 .empty-state p { font-size: 14px; }
 
-/* ── Meds Tab ── */
-.med-item {
-  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-  border-bottom: 1px solid var(--border); cursor: pointer;
-  background: var(--surface); transition: background .1s;
-}
+.med-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; background: var(--surface); transition: background .15s; }
 .med-item:last-child { border-bottom: none; }
-.med-item:active { background: var(--bg); }
-.med-item.taken { background: var(--teal-ll); }
-.med-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; background: var(--teal-l); }
-.med-item.taken .med-icon { background: var(--teal); }
+.med-item:active { background: var(--surface-2); }
+.med-item.taken { background: rgba(99,102,241,.06); }
+.med-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; background: var(--surface-2); }
+.med-item.taken .med-icon { background: var(--pri); }
 .med-info { flex: 1; }
 .med-name { font-size: 14px; font-weight: 600; color: var(--text); }
-.med-item.taken .med-name { color: var(--teal-d); }
+.med-item.taken .med-name { color: #A5B4FC; }
 .med-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-.med-status {
-  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px;
-  border: 1.5px solid var(--border); color: var(--text-3); background: var(--bg);
-  white-space: nowrap;
-}
-.med-item.taken .med-status { background: var(--teal); border-color: var(--teal); color: white; }
-.med-time-header { padding: 14px 16px 6px; font-size: 11px; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: .5px; }
+.med-status { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px; border: 1.5px solid var(--border); color: var(--text-3); background: var(--surface-2); white-space: nowrap; }
+.med-item.taken .med-status { background: var(--pri); border-color: var(--pri); color: white; }
+.med-time-header { padding: 14px 16px 6px; font-size: 11px; font-weight: 700; color: var(--pri); text-transform: uppercase; letter-spacing: .5px; }
 
-/* ── Progress Tab ── */
-.streak-card { background: var(--teal); color: white; padding: 24px 20px; text-align: center; }
+.streak-card { background: linear-gradient(135deg, var(--pri-d) 0%, #4338CA 100%); color: white; padding: 24px 20px; text-align: center; }
 .streak-num { font-size: 64px; font-weight: 700; line-height: 1; }
-.streak-unit { font-size: 16px; opacity: .8; margin-top: 4px; }
-.streak-best { font-size: 13px; opacity: .7; margin-top: 8px; }
+.streak-unit { font-size: 16px; opacity: .7; margin-top: 4px; }
+.streak-best { font-size: 13px; opacity: .5; margin-top: 8px; }
 .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 16px; }
 .week-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .week-label { font-size: 10px; font-weight: 600; color: var(--text-3); }
 .week-dot { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
-.week-dot.today { border: 2px solid var(--teal); }
-.week-dot.great { background: var(--teal); color: white; }
-.week-dot.good { background: var(--teal-l); color: var(--teal-d); }
+.week-dot.today { border: 2px solid var(--pri); }
+.week-dot.great { background: var(--pri); color: white; }
+.week-dot.good { background: rgba(99,102,241,.2); color: #A5B4FC; }
 .week-dot.partial { background: var(--warn-l); color: var(--warn); }
-.week-dot.miss { background: var(--border); color: var(--text-3); }
-.week-dot.future { background: var(--bg); color: var(--text-3); border: 1px dashed var(--border); }
+.week-dot.miss { background: var(--surface-2); color: var(--text-3); }
+.week-dot.future { background: transparent; color: var(--text-3); border: 1px dashed var(--border); }
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-.stat-val { font-size: 28px; font-weight: 700; color: var(--teal); }
-.stat-lbl { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.stat-val { font-size: 28px; font-weight: 700; color: var(--pri); }
+.stat-lbl { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 .history-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .history-item:last-child { border-bottom: none; }
 .history-date { font-size: 13px; color: var(--text-2); min-width: 80px; }
-.history-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-.history-bar { height: 100%; border-radius: 3px; background: var(--teal); }
-.history-pct { font-size: 13px; font-weight: 600; min-width: 38px; text-align: right; color: var(--text); }
+.history-bar-wrap { flex: 1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.history-bar { height: 100%; border-radius: 3px; }
+.history-pct { font-size: 13px; font-weight: 600; min-width: 38px; text-align: right; }
 
-/* ── Install Banner ── */
-#install-banner {
-  display: none; position: fixed; bottom: calc(var(--nav-h) + var(--safe-b) + 12px); left: 16px; right: 16px;
-  background: var(--text); color: white; border-radius: 14px; padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,.3);
-}
+#install-banner { position: fixed; bottom: calc(var(--nav-h) + var(--safe-b) + 12px); left: 16px; right: 16px; background: var(--surface-2); color: var(--text); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; z-index: 100; box-shadow: 0 4px 24px rgba(0,0,0,.5); border: 1px solid var(--border); }
 #install-banner.hidden { display: none; }
 .install-text { flex: 1; font-size: 13px; line-height: 1.4; }
-.install-btn { background: var(--teal); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; }
-.install-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 18px; cursor: pointer; padding: 4px; }
+.install-btn { background: var(--pri); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.install-close { background: none; border: none; color: var(--text-3); font-size: 18px; cursor: pointer; padding: 4px; }
+
+#auth-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; color: var(--text); font-family: inherit; }
+#auth-screen.hidden { display: none; }
+.auth-logo-wrap { width: 72px; height: 72px; border-radius: 20px; margin-bottom: 16px; background: linear-gradient(135deg, var(--pri) 0%, #4338CA 100%); display: flex; align-items: center; justify-content: center; }
+.auth-logo { width: 40px; height: 40px; }
+.auth-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.auth-subtitle { font-size: 13px; color: var(--text-3); margin-bottom: 32px; }
+.auth-label { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 12px; }
+.pin-dots { display: flex; gap: 16px; margin-bottom: 28px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all .15s; }
+.pin-dot.filled { background: var(--pri); border-color: var(--pri); }
+.pin-dot.error { border-color: var(--danger); background: var(--danger); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 68px); gap: 12px; margin-bottom: 20px; }
+.pin-key { width: 68px; height: 68px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-size: 24px; font-weight: 600; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .1s; user-select: none; }
+.pin-key:active { background: var(--surface-2); transform: scale(.93); }
+.pin-key.action { font-size: 14px; font-weight: 500; border: none; background: none; color: var(--text-2); }
+.auth-msg { font-size: 13px; margin-top: 8px; min-height: 20px; text-align: center; }
+.auth-msg.error { color: var(--danger); }
+.auth-msg.success { color: var(--success); }
+.auth-setup-info { font-size: 12px; color: var(--text-3); text-align: center; max-width: 260px; line-height: 1.5; margin-top: 12px; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
 </style>
 </head>
 <body>
-<div id="app">
-  <!-- Header -->
+<div id="auth-screen">
+  <div class="auth-logo-wrap"><svg class="auth-logo" viewBox="0 0 40 40" fill="none"><path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="white" opacity=".9"/><path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="white" opacity=".9"/><rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="white"/></svg></div>
+  <div class="auth-title">LungCare</div>
+  <div class="auth-subtitle" id="auth-subtitle">Enter your PIN</div>
+  <div class="auth-label" id="auth-label">PIN</div>
+  <div class="pin-dots" id="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div class="pin-pad" id="pin-pad">
+    <button class="pin-key" data-key="1">1</button><button class="pin-key" data-key="2">2</button><button class="pin-key" data-key="3">3</button>
+    <button class="pin-key" data-key="4">4</button><button class="pin-key" data-key="5">5</button><button class="pin-key" data-key="6">6</button>
+    <button class="pin-key" data-key="7">7</button><button class="pin-key" data-key="8">8</button><button class="pin-key" data-key="9">9</button>
+    <button class="pin-key action" id="bio-key" data-key="bio" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 10v4M7.5 7.5C9 6 10.5 5.5 12 5.5s3 .5 4.5 2M5 5c2.5-2.5 4.5-3 7-3s4.5.5 7 3"/><path d="M12 14c0 2.5-.5 4.5-1.5 6M16.5 10.5c0 3-1 5.5-2.5 7.5M19 8c.5 1 1 2.5 1 4.5 0 3-1 5.5-2 7"/><path d="M8.5 12.5c0 2-.5 4-1.5 5.5M5.5 10c-.3 1-.5 2-.5 3.5 0 2-.5 3.5-1 5"/></svg></button>
+    <button class="pin-key" data-key="0">0</button><button class="pin-key action" data-key="del">⌫</button>
+  </div>
+  <div class="auth-msg" id="auth-msg"></div>
+  <div class="auth-setup-info" id="auth-setup-info"></div>
+</div>
+<div id="app" style="display:none;">
   <header class="app-header">
-    <svg class="header-logo" viewBox="0 0 40 40" fill="none">
-      <path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="white" opacity=".9"/>
-      <path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="white" opacity=".9"/>
-      <rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="white"/>
-    </svg>
-    <div class="header-info">
-      <div class="header-title">LungCare</div>
-      <div class="header-date" id="header-date"></div>
-    </div>
+    <svg class="header-logo" viewBox="0 0 40 40" fill="none"><path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="#6366F1" opacity=".9"/><path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="#6366F1" opacity=".9"/><rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="#6366F1"/></svg>
+    <div class="header-info"><div class="header-title">LungCare</div><div class="header-date" id="header-date"></div></div>
     <div class="streak-badge" id="streak-header">🔥 0</div>
   </header>
-
-  <!-- Tabs -->
   <div class="tabs">
-    <!-- TODAY -->
     <div class="tab-panel active" id="panel-today">
       <div class="today-summary">
-        <div class="progress-ring-wrap">
-          <svg width="72" height="72" viewBox="0 0 72 72">
-            <circle class="ring-bg" cx="36" cy="36" r="30" stroke-width="6"/>
-            <circle class="ring-fill" id="ring-fill" cx="36" cy="36" r="30" stroke-width="6" stroke-dasharray="188.4" stroke-dashoffset="188.4"/>
-          </svg>
-          <div class="ring-center" id="ring-pct">0%</div>
-        </div>
-        <div class="summary-text">
-          <div class="pct" id="summary-pct">0%</div>
-          <div class="sub" id="summary-sub">Let's get started!</div>
-          <div class="tasks-done" id="tasks-done">0 of 29 tasks done</div>
-        </div>
+        <div class="progress-ring-wrap"><svg width="72" height="72" viewBox="0 0 72 72"><circle class="ring-bg" cx="36" cy="36" r="30" stroke-width="6"/><circle class="ring-fill" id="ring-fill" cx="36" cy="36" r="30" stroke-width="6" stroke-dasharray="188.4" stroke-dashoffset="188.4"/></svg><div class="ring-center" id="ring-pct">0%</div></div>
+        <div class="summary-text"><div class="pct" id="summary-pct">0%</div><div class="sub" id="summary-sub">Let's get started!</div><div class="tasks-done" id="tasks-done">0 tasks done</div></div>
       </div>
       <div id="checklist-body"></div>
     </div>
-
-    <!-- SPO2 LOG -->
     <div class="tab-panel" id="panel-spo2">
       <div class="spo2-entry">
         <div class="entry-title">Log SpO2 reading</div>
-        <div style="margin-bottom:12px">
-          <div class="spo2-value-display spo2-ok" id="spo2-display">—</div>
-          <div class="spo2-status" id="spo2-status"></div>
-        </div>
-        <div class="entry-row">
-          <div class="field">
-            <label>SpO2 (%)</label>
-            <input type="number" id="inp-spo2" min="70" max="100" placeholder="95" oninput="updateSpo2Display()">
-          </div>
-          <div class="field">
-            <label>Pulse (bpm)</label>
-            <input type="number" id="inp-pulse" min="40" max="200" placeholder="75">
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:10px">
-          <label>How are you feeling?</label>
-          <select id="inp-feeling">
-            <option value="">Select feeling</option>
-            <option value="Great">😊 Great</option>
-            <option value="Normal">😐 Normal</option>
-            <option value="Tired">😔 Tired</option>
-            <option value="Breathless">😮‍💨 Breathless</option>
-            <option value="Wheezing">😰 Wheezing/Coughing</option>
-          </select>
-        </div>
-        <div class="field" style="margin-bottom:12px">
-          <label>Notes (optional)</label>
-          <textarea id="inp-notes" placeholder="After walk, felt a bit tired…"></textarea>
-        </div>
+        <div style="margin-bottom:12px"><div class="spo2-value-display spo2-ok" id="spo2-display">—</div><div class="spo2-status" id="spo2-status"></div></div>
+        <div class="entry-row"><div class="field"><label>SpO2 (%)</label><input type="number" id="inp-spo2" min="70" max="100" placeholder="95" inputmode="numeric" oninput="updateSpo2Display()"></div><div class="field"><label>Pulse (bpm)</label><input type="number" id="inp-pulse" min="40" max="200" placeholder="75" inputmode="numeric"></div></div>
+        <div class="field" style="margin-bottom:10px"><label>How are you feeling?</label><select id="inp-feeling"><option value="">Select feeling</option><option value="Great">😊 Great</option><option value="Normal">😐 Normal</option><option value="Tired">😔 Tired</option><option value="Breathless">😮‍💨 Breathless</option><option value="Wheezing">😰 Wheezing/Coughing</option></select></div>
+        <div class="field" style="margin-bottom:12px"><label>Notes (optional)</label><textarea id="inp-notes" placeholder="After walk, felt a bit tired…"></textarea></div>
         <button class="btn-primary" onclick="saveSpo2()">Save reading</button>
       </div>
-      <div class="card" style="margin:16px;margin-top:8px">
-        <div class="card-header"><span class="card-title">Recent readings</span></div>
-        <div id="spo2-history"></div>
-      </div>
+      <div class="card" style="margin:16px;margin-top:8px"><div class="card-header"><span class="card-title">Recent readings</span></div><div id="spo2-history"></div></div>
     </div>
-
-    <!-- MEDICATIONS -->
     <div class="tab-panel" id="panel-meds">
-      <div style="padding:12px 16px 0">
-        <div class="card" style="background:var(--teal-ll);border-color:var(--teal-l);margin-bottom:0">
-          <div style="padding:12px 14px;font-size:13px;color:var(--teal-d);line-height:1.5">
-            Tap each medication to mark as taken. Resets automatically every day at midnight.
-          </div>
-        </div>
-      </div>
+      <div style="padding:12px 16px 0"><div class="card" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.15);margin-bottom:0"><div style="padding:12px 14px;font-size:13px;color:var(--text-2);line-height:1.5">Tap each medication to mark as taken. Resets automatically every day at midnight.</div></div></div>
       <div id="meds-body"></div>
     </div>
-
-    <!-- PROGRESS -->
     <div class="tab-panel" id="panel-progress">
-      <div class="streak-card">
-        <div style="font-size:13px;opacity:.8;margin-bottom:6px">Current streak</div>
-        <div class="streak-num" id="streak-big">0</div>
-        <div class="streak-unit">consecutive days</div>
-        <div class="streak-best" id="streak-best-text">Best streak: 0 days</div>
-      </div>
-      <div class="card" style="margin:16px 16px 0">
-        <div class="card-header"><span class="card-title">This week</span></div>
-        <div class="week-grid" id="week-grid"></div>
-      </div>
-      <div class="stat-grid">
-        <div class="stat-card"><div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Avg completion this week</div></div>
-        <div class="stat-card"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">Total days tracked</div></div>
-      </div>
-      <div class="card" style="margin:0 16px 16px">
-        <div class="card-header"><span class="card-title">Last 14 days</span></div>
-        <div id="history-list"></div>
-      </div>
+      <div class="streak-card"><div style="font-size:13px;opacity:.7;margin-bottom:6px">Current streak</div><div class="streak-num" id="streak-big">0</div><div class="streak-unit">consecutive days</div><div class="streak-best" id="streak-best-text">Best streak: 0 days</div></div>
+      <div class="card" style="margin:16px 16px 0"><div class="card-header"><span class="card-title">This week</span></div><div class="week-grid" id="week-grid"></div></div>
+      <div class="stat-grid"><div class="stat-card"><div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Avg completion this week</div></div><div class="stat-card"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">Total days tracked</div></div></div>
+      <div class="card" style="margin:0 16px 16px"><div class="card-header"><span class="card-title">Last 14 days</span></div><div id="history-list"></div></div>
     </div>
   </div>
-
-  <!-- Bottom Nav -->
   <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="today" onclick="switchTab('today',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>Today
-    </button>
-    <button class="nav-btn" data-tab="spo2" onclick="switchTab('spo2',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-      </svg>SpO2
-    </button>
-    <button class="nav-btn" data-tab="meds" onclick="switchTab('meds',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/>
-      </svg>Meds
-    </button>
-    <button class="nav-btn" data-tab="progress" onclick="switchTab('progress',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>Progress
-    </button>
+    <button class="nav-btn active" data-tab="today" onclick="switchTab('today',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Today</button>
+    <button class="nav-btn" data-tab="spo2" onclick="switchTab('spo2',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>SpO2</button>
+    <button class="nav-btn" data-tab="meds" onclick="switchTab('meds',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/></svg>Meds</button>
+    <button class="nav-btn" data-tab="progress" onclick="switchTab('progress',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Progress</button>
   </nav>
 </div>
-
-<!-- Install Banner -->
-<div id="install-banner" class="hidden">
-  <div class="install-text"><strong>Install LungCare</strong><br>Add to home screen for offline access</div>
-  <button class="install-btn" id="install-btn">Install</button>
-  <button class="install-close" onclick="dismissInstall()">✕</button>
-</div>
-
+<div id="install-banner" class="hidden"><div class="install-text"><strong>Install LungCare</strong><br>Add to home screen for offline access</div><button class="install-btn" id="install-btn">Install</button><button class="install-close" onclick="dismissInstall()">✕</button></div>
 <script>
-// ── Task Definitions ──────────────────────────────────────────────
-const TASKS = [
-  {id:'spo2-wake',  s:'morning', n:'Check SpO2 on waking',           d:'Target ≥ 95%. Below 93% → sit upright, call doctor.',           t:'mon'},
-  {id:'postural',   s:'morning', n:'Postural drainage — 10 min',      d:'Head lower than chest. Gravity drains mucus before clearance.', t:'clear'},
-  {id:'nasal-wash', s:'morning', n:'Nasal saline wash',               d:'Lukewarm 37°C RO water + Jala Neti salt. Daily now, not weekly.',t:'nasal'},
-  {id:'forocot-am', s:'morning', n:'Forocot G — 1 puff (morning)',    d:'Always first. Wait 10–15 min before Aerobika. Rinse mouth.',    t:'med'},
-  {id:'neb-am',     s:'morning', n:'Hypertonic saline nebuliser',     d:'4 ml, 5–10 min after Forocot G. Thins mucus for Aerobika.',     t:'med'},
-  {id:'aerobika-am',s:'morning', n:'Aerobika — 5 cycles',             d:'Inhale → hold 2s → exhale through device → huff cough after.', t:'clear'},
-  {id:'spiro',      s:'morning', n:'Spirometer (Mon / Wed / Fri)',     d:'10 deep breaths, hold 3s. Do before Aerobika on these days.',   t:'ex'},
-  {id:'core-am',    s:'morning', n:'Core: belly breathing + pelvic tilt', d:'10 diaphragmatic breaths + 10 pelvic tilts on back. 5 min.', t:'core'},
-  {id:'breakfast',  s:'morning', n:'High-calorie South Indian breakfast', d:'Idli/pesarattu + eggs/paneer + banana + turmeric milk. 500+ kcal.', t:'food'},
-  {id:'walk-am',    s:'morning', n:'Morning walk — 20 min',           d:'Pursed-lip breathing. N95 near traffic. Check SpO2 after.',     t:'ex'},
-  {id:'stretch',    s:'morning', n:'Doorway chest stretch — 3×30s',   d:'Lean through doorway, chest opens. Fixes posture.',             t:'pos'},
-  {id:'snack-am',   s:'day',     n:'Mid-morning snack (10:30 AM)',    d:'Nuts + groundnut chikki + coconut water. Never skip.',          t:'food'},
-  {id:'lunch',      s:'day',     n:'Lunch — biggest meal (1 PM)',     d:'Rice + sambar + dal + curd. Add ghee. 650 kcal target.',        t:'food'},
-  {id:'spo2-pm',    s:'day',     n:'Post-lunch SpO2 + 30 min rest',   d:'Sit upright after eating. Never lie flat for 45 min after food.',t:'mon'},
-  {id:'water',      s:'day',     n:'Water — 2.5 litres by 4 PM',      d:'Warm or room temp only. No cold water. Thin mucus = easier clearance.', t:'hyd'},
-  {id:'snack-pm',   s:'day',     n:'Afternoon snack (4 PM)',          d:'Ragi malt / peanut butter toast / steamed sweet potato.',       t:'food'},
-  {id:'chin-tuck',  s:'day',     n:'Chin tuck — 10 reps × 3 today',  d:'Pull chin back, hold 5s. Corrects forward head posture.',       t:'pos'},
-  {id:'forocot-pm', s:'evening', n:'Forocot G — 1 puff (evening)',   d:'Second dose. Wait 10–15 min. Rinse mouth after.',               t:'med'},
-  {id:'neb-pm',     s:'evening', n:'Hypertonic saline nebuliser (PM)',d:'Evening session. Clears day\'s mucus before sleep.',            t:'med'},
-  {id:'aerobika-pm',s:'evening', n:'Aerobika — evening 5 cycles',    d:'Critical before sleep. Same technique as morning.',             t:'clear'},
-  {id:'core-pm',    s:'evening', n:'Core + strength exercises (4×/week)', d:'Dead bug, glute bridge, bird-dog, wall sit. 20 min.',      t:'core'},
-  {id:'imt',        s:'evening', n:'IMT breathing — 30 breaths',     d:'POWERbreathe: breathe hard against resistance. 5 min.',         t:'ex'},
-  {id:'walk-pm',    s:'evening', n:'Evening walk — 20–30 min',       d:'Park preferred. SpO2 should return to baseline within 3 min.',  t:'ex'},
-  {id:'dinner',     s:'evening', n:'Dinner before 8 PM',             d:'Ragi roti + kurma + dal + ghee. 500 kcal target.',             t:'food'},
-  {id:'post-dinner',s:'evening', n:'Post-dinner walk — 10 min',      d:'Reduces bloating. Do not lie flat for 45 min after eating.',   t:'ex'},
-  {id:'huff',       s:'night',   n:'Pre-sleep huff cough — 3–4 times', d:'Sit upright, exhale forcefully. Spit mucus. Prevents night cough.', t:'clear'},
-  {id:'snack-night',s:'night',   n:'Bedtime protein snack',          d:'Warm milk + turmeric + honey / boiled eggs / curd rice.',       t:'food'},
-  {id:'clean',      s:'night',   n:'Clean all devices',              d:'Aerobika + nasal bottle + nebuliser mesh. Aspergillus grows fast.', t:'hyg'},
-  {id:'sleep',      s:'night',   n:'Sleep — 2 pillows, right side',  d:'10 PM target. Air purifier on. No fan directly on face.',       t:'slp'},
+const Auth={pin:'',mode:'verify',setupPin:'',async hashPin(p){const d=new TextEncoder().encode('lungcare_'+p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')},hasPin(){return!!localStorage.getItem('lc_pin_hash')},async checkPin(p){return(await this.hashPin(p))===localStorage.getItem('lc_pin_hash')},async savePin(p){localStorage.setItem('lc_pin_hash',await this.hashPin(p))},hasBiometric(){return!!localStorage.getItem('lc_bio_cred')},async canUseBiometric(){if(!window.PublicKeyCredential)return false;try{return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()}catch{return false}},
+async registerBiometric(){try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'LungCare',id:location.hostname||'localhost'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'lungcare-user',displayName:'LungCare User'},pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000}});localStorage.setItem('lc_bio_cred',btoa(String.fromCharCode(...new Uint8Array(c.rawId))));return true}catch(e){console.warn('Bio register:',e);return false}},
+async verifyBiometric(){try{const id=localStorage.getItem('lc_bio_cred');if(!id)return false;await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{id:Uint8Array.from(atob(id),c=>c.charCodeAt(0)),type:'public-key',transports:['internal']}],userVerification:'required',timeout:60000}});return true}catch(e){console.warn('Bio verify:',e);return false}},
+async initAuth(){const bk=document.getElementById('bio-key');const cb=await this.canUseBiometric();if(!this.hasPin()){this.mode='setup';document.getElementById('auth-subtitle').textContent='Set up your PIN';document.getElementById('auth-label').textContent='Choose a 4-digit PIN';document.getElementById('auth-setup-info').textContent='This PIN protects your health data. Remember it \u2014 there is no recovery option.'}else{this.mode='verify';document.getElementById('auth-subtitle').textContent='Welcome back';document.getElementById('auth-label').textContent='Enter your PIN';if(cb&&this.hasBiometric()){bk.style.visibility='visible';setTimeout(()=>this.tryBiometric(),400)}}document.querySelectorAll('#pin-pad .pin-key').forEach(b=>{b.addEventListener('click',()=>{const k=b.dataset.key;if(k==='bio')this.tryBiometric();else if(k==='del')this.deleteDigit();else this.addDigit(k)})})},
+addDigit(d){if(this.pin.length>=4)return;this.pin+=d;if(navigator.vibrate)navigator.vibrate(10);this.updateDots();if(this.pin.length===4)setTimeout(()=>this.submitPin(),150)},
+deleteDigit(){this.pin=this.pin.slice(0,-1);this.updateDots();this.clearMsg()},
+updateDots(){document.querySelectorAll('#pin-dots .pin-dot').forEach((d,i)=>{d.classList.toggle('filled',i<this.pin.length);d.classList.remove('error')})},
+showMsg(t,c=''){const e=document.getElementById('auth-msg');e.textContent=t;e.className='auth-msg'+(c?' '+c:'')},
+clearMsg(){const e=document.getElementById('auth-msg');e.textContent='';e.className='auth-msg'},
+shakeAndReset(){document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));const w=document.getElementById('pin-dots');w.style.animation='shake .4s ease';setTimeout(()=>{w.style.animation='';this.pin='';this.updateDots()},500)},
+async submitPin(){if(this.mode==='setup'){this.setupPin=this.pin;this.pin='';this.mode='confirm';document.getElementById('auth-label').textContent='Confirm your PIN';this.updateDots();this.showMsg('Re-enter the same PIN','');return}if(this.mode==='confirm'){if(this.pin===this.setupPin){await this.savePin(this.pin);this.showMsg('PIN set!','success');if(await this.canUseBiometric()){this.showMsg('Setting up fingerprint...','success');if(await this.registerBiometric())this.showMsg('PIN + Fingerprint ready!','success')}setTimeout(()=>this.unlock(),600)}else{this.showMsg("PINs don't match \u2014 try again",'error');this.shakeAndReset();this.mode='setup';document.getElementById('auth-label').textContent='Choose a 4-digit PIN';this.setupPin=''}return}if(this.mode==='verify'){if(await this.checkPin(this.pin)){this.showMsg('Unlocked!','success');setTimeout(()=>this.unlock(),300)}else{this.showMsg('Wrong PIN','error');this.shakeAndReset()}}},
+async tryBiometric(){this.showMsg('Verifying...','');if(await this.verifyBiometric()){this.showMsg('Unlocked!','success');setTimeout(()=>this.unlock(),300)}else this.showMsg('Fingerprint failed \u2014 use PIN','error')},
+unlock(){document.getElementById('auth-screen').classList.add('hidden');document.getElementById('app').style.display='flex';startApp()}};
+
+const TASKS=[
+{id:'spo2-wake',s:'morning',n:'Check SpO2 on waking',d:'Target \u2265 95%. Below 93% \u2192 sit upright, call doctor.',t:'mon'},
+{id:'postural',s:'morning',n:'Postural drainage \u2014 10 min',d:'Head lower than chest. Gravity drains mucus before clearance.',t:'clear'},
+{id:'nasal-wash',s:'morning',n:'Nasal saline wash',d:'Lukewarm 37\u00B0C RO water + Jala Neti salt. Daily now, not weekly.',t:'nasal'},
+{id:'forocot-am',s:'morning',n:'Forocot G \u2014 1 puff (morning)',d:'Always first. Wait 10\u201315 min before Aerobika. Rinse mouth.',t:'med'},
+{id:'aerobika-am',s:'morning',n:'Aerobika \u2014 5 cycles',d:'Inhale \u2192 hold 2s \u2192 exhale through device \u2192 huff cough after.',t:'clear'},
+{id:'spiro',s:'morning',n:'Spirometer \u2014 10 deep breaths',d:'Hold 3s each. Do before Aerobika. Shows only Mon/Wed/Fri.',t:'ex'},
+{id:'core-am',s:'morning',n:'Core: belly breathing + pelvic tilt',d:'10 diaphragmatic breaths + 10 pelvic tilts on back. 5 min.',t:'core'},
+{id:'breakfast',s:'morning',n:'High-calorie South Indian breakfast',d:'Idli/pesarattu + eggs/paneer + banana + turmeric milk. 500+ kcal.',t:'food'},
+{id:'walk-am',s:'morning',n:'Morning walk \u2014 20 min',d:'Pursed-lip breathing. N95 near traffic. Check SpO2 after.',t:'ex'},
+{id:'stretch',s:'morning',n:'Doorway chest stretch \u2014 3\u00D730s',d:'Lean through doorway, chest opens. Fixes posture.',t:'pos'},
+{id:'snack-am',s:'day',n:'Mid-morning snack (10:30 AM)',d:'Nuts + groundnut chikki + coconut water. Never skip.',t:'food'},
+{id:'lunch',s:'day',n:'Lunch \u2014 biggest meal (1 PM)',d:'Rice + sambar + dal + curd. Add ghee. 650 kcal target.',t:'food'},
+{id:'spo2-pm',s:'day',n:'Post-lunch SpO2 + 30 min rest',d:'Sit upright after eating. Never lie flat for 45 min after food.',t:'mon'},
+{id:'water',s:'day',n:'Water \u2014 2.5 litres by 4 PM',d:'Warm or room temp only. No cold water. Thin mucus = easier clearance.',t:'hyd'},
+{id:'snack-pm',s:'day',n:'Afternoon snack (4 PM)',d:'Ragi malt / peanut butter toast / steamed sweet potato.',t:'food'},
+{id:'chin-tuck',s:'day',n:'Chin tuck \u2014 10 reps \u00D7 3 today',d:'Pull chin back, hold 5s. Corrects forward head posture.',t:'pos'},
+{id:'forocot-pm',s:'evening',n:'Forocot G \u2014 1 puff (evening)',d:'Second dose. Wait 10\u201315 min. Rinse mouth after.',t:'med'},
+{id:'aerobika-pm',s:'evening',n:'Aerobika \u2014 evening 5 cycles',d:'Critical before sleep. Same technique as morning.',t:'clear'},
+{id:'core-pm',s:'evening',n:'Core + strength exercises (4\u00D7/week)',d:'Dead bug, glute bridge, bird-dog, wall sit. 20 min.',t:'core'},
+{id:'walk-pm',s:'evening',n:'Evening walk \u2014 20\u201330 min',d:'Park preferred. SpO2 should return to baseline within 3 min.',t:'ex'},
+{id:'dinner',s:'evening',n:'Dinner before 8 PM',d:'Ragi roti + kurma + dal + ghee. 500 kcal target.',t:'food'},
+{id:'post-dinner',s:'evening',n:'Post-dinner walk \u2014 10 min',d:'Reduces bloating. Do not lie flat for 45 min after eating.',t:'ex'},
+{id:'huff',s:'night',n:'Pre-sleep huff cough \u2014 3\u20134 times',d:'Sit upright, exhale forcefully. Spit mucus. Prevents night cough.',t:'clear'},
+{id:'snack-night',s:'night',n:'Bedtime protein snack',d:'Warm milk + turmeric + honey / boiled eggs / curd rice.',t:'food'},
+{id:'clean',s:'night',n:'Clean all devices',d:'Aerobika + nasal bottle + nebuliser mesh. Aspergillus grows fast.',t:'hyg'},
+{id:'sleep',s:'night',n:'Sleep \u2014 2 pillows, right side',d:'10 PM target. Air purifier on. No fan directly on face.',t:'slp'}
 ];
+const SESSIONS={morning:'Morning',day:'Daytime',evening:'Evening',night:'Night'};
+const SESSION_ORDER=['morning','day','evening','night'];
+const MEDS=[{id:'forocot-am-med',time:'am',icon:'\uD83D\uDC8A',n:'Forocot G',sub:'1 puff \u2014 morning inhaler'},{id:'forocot-pm-med',time:'pm',icon:'\uD83D\uDC8A',n:'Forocot G',sub:'1 puff \u2014 evening inhaler'}];
+const CHIP_CLASS={med:'chip-med',clear:'chip-clear',food:'chip-food',ex:'chip-ex',mon:'chip-mon',core:'chip-core',pos:'chip-pos',hyd:'chip-hyd',hyg:'chip-hyg',slp:'chip-slp',nasal:'chip-nasal'};
+const CHIP_LABEL={med:'Medication',clear:'Clearance',food:'Nutrition',ex:'Exercise',mon:'Monitor',core:'Core',pos:'Posture',hyd:'Hydration',hyg:'Hygiene',slp:'Sleep',nasal:'Nasal'};
 
-const SESSIONS = { morning:'Morning', day:'Daytime', evening:'Evening', night:'Night' };
-const SESSION_ORDER = ['morning','day','evening','night'];
+const DB={db:null,async open(){return new Promise((r,j)=>{const q=indexedDB.open('lungcareDB',2);q.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('checklist'))d.createObjectStore('checklist',{keyPath:'key'}).createIndex('date','date');if(!d.objectStoreNames.contains('spo2'))d.createObjectStore('spo2',{keyPath:'id',autoIncrement:true}).createIndex('date','date');if(!d.objectStoreNames.contains('meds'))d.createObjectStore('meds',{keyPath:'key'}).createIndex('date','date')};q.onsuccess=e=>{this.db=e.target.result;r()};q.onerror=()=>j(q.error)})},
+tx(s,m='readonly'){return this.db.transaction(s,m).objectStore(s)},
+put(s,v){return new Promise((r,j)=>{const q=this.tx(s,'readwrite').put(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},
+add(s,v){return new Promise((r,j)=>{const q=this.tx(s,'readwrite').add(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},
+getByIndex(s,i,v){return new Promise((r,j)=>{const q=this.tx(s).index(i).getAll(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},
+getRange(s,i,lo,hi){return new Promise((r,j)=>{const q=this.tx(s).index(i).getAll(IDBKeyRange.bound(lo,hi));q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},
+deleteItem(s,k){return new Promise((r,j)=>{const q=this.tx(s,'readwrite').delete(k);q.onsuccess=()=>r();q.onerror=()=>j(q.error)})}};
 
-const MEDS = [
-  {id:'forocot-am-med',  time:'am', icon:'💊', n:'Forocot G',             sub:'1 puff — morning inhaler'},
-  {id:'neb-am-med',      time:'am', icon:'🌬️', n:'Hypertonic Saline (AM)', sub:'4 ml via nebuliser'},
-  {id:'forocot-pm-med',  time:'pm', icon:'💊', n:'Forocot G',             sub:'1 puff — evening inhaler'},
-  {id:'neb-pm-med',      time:'pm', icon:'🌬️', n:'Hypertonic Saline (PM)', sub:'4 ml via nebuliser'},
-];
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'});
+const dayLabel=d=>['Su','Mo','Tu','We','Th','Fr','Sa'][new Date(d+'T00:00:00').getDay()];
+const dateRange=n=>{const a=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10))}return a};
 
-const CHIP_CLASS = {
-  med:'chip-med', clear:'chip-clear', food:'chip-food', ex:'chip-ex',
-  mon:'chip-mon', core:'chip-core', pos:'chip-pos', hyd:'chip-hyd',
-  hyg:'chip-hyg', slp:'chip-slp', nasal:'chip-nasal'
-};
-const CHIP_LABEL = {
-  med:'Medication', clear:'Clearance', food:'Nutrition', ex:'Exercise',
-  mon:'Monitor', core:'Core', pos:'Posture', hyd:'Hydration',
-  hyg:'Hygiene', slp:'Sleep', nasal:'Nasal'
-};
+let completions=new Set();
+let medCompletions=new Set();
 
-// ── IndexedDB ─────────────────────────────────────────────────────
-const DB = {
-  db: null,
-  async open() {
-    return new Promise((res, rej) => {
-      const req = indexedDB.open('lungcareDB', 2);
-      req.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('checklist')) {
-          db.createObjectStore('checklist', {keyPath:'key'}).createIndex('date','date');
-        }
-        if (!db.objectStoreNames.contains('spo2')) {
-          db.createObjectStore('spo2', {keyPath:'id', autoIncrement:true}).createIndex('date','date');
-        }
-        if (!db.objectStoreNames.contains('meds')) {
-          db.createObjectStore('meds', {keyPath:'key'}).createIndex('date','date');
-        }
-      };
-      req.onsuccess = e => { this.db = e.target.result; res(); };
-      req.onerror = () => rej(req.error);
-    });
-  },
-  tx(store, mode='readonly') { return this.db.transaction(store, mode).objectStore(store); },
-  get(store, key) { return new Promise((res,rej) => { const r = this.tx(store).get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
-  put(store, val) { return new Promise((res,rej) => { const r = this.tx(store,'readwrite').put(val); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
-  add(store, val) { return new Promise((res,rej) => { const r = this.tx(store,'readwrite').add(val); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
-  getByIndex(store, idx, val) { return new Promise((res,rej) => { const r = this.tx(store).index(idx).getAll(val); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
-  getRange(store, idx, lower, upper) {
-    return new Promise((res,rej) => {
-      const range = IDBKeyRange.bound(lower, upper);
-      const r = this.tx(store).index(idx).getAll(range);
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-    });
-  },
-  deleteItem(store, key) { return new Promise((res,rej) => { const r = this.tx(store,'readwrite').delete(key); r.onsuccess = () => res(); r.onerror = () => rej(r.error); }); }
-};
+function getTodayTasks(){const dow=new Date().getDay();return TASKS.filter(t=>!(t.id==='spiro'&&![1,3,5].includes(dow)))}
+function validCompletionCount(){const v=new Set(getTodayTasks().map(t=>t.id));let c=0;for(const id of completions)if(v.has(id))c++;return c}
 
-// ── Date helpers ──────────────────────────────────────────────────
-const today = () => new Date().toISOString().slice(0,10);
-const fmtDate = d => {
-  const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('en-IN', {day:'numeric', month:'short', weekday:'short'});
-};
-const dayLabel = d => {
-  const dt = new Date(d + 'T00:00:00');
-  return ['Su','Mo','Tu','We','Th','Fr','Sa'][dt.getDay()];
-};
-const dateRange = (days) => {
-  const dates = [];
-  for (let i = days-1; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().slice(0,10));
-  }
-  return dates;
-};
+function switchTab(tab,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');if(tab==='progress')renderProgress();if(tab==='spo2')renderSpo2History();if(tab==='meds')renderMeds()}
 
-// ── App State ─────────────────────────────────────────────────────
-let completions = new Set();
-let medCompletions = new Set();
+function buildChecklist(){const body=document.getElementById('checklist-body');body.innerHTML='';const tt=getTodayTasks();const g={};SESSION_ORDER.forEach(s=>g[s]=[]);tt.forEach(t=>(g[t.s]||[]).push(t));SESSION_ORDER.forEach(s=>{if(!g[s].length)return;const l=document.createElement('div');l.className='session-label';l.textContent=SESSIONS[s];body.appendChild(l);const c=document.createElement('div');c.className='card';g[s].forEach(task=>{const it=document.createElement('div');it.className='task-item'+(completions.has(task.id)?' done':'');it.dataset.id=task.id;it.innerHTML='<div class="task-check"></div><div class="task-content"><div class="task-name">'+task.n+'</div><div class="task-detail">'+task.d+'</div><span class="chip '+(CHIP_CLASS[task.t]||'chip-mon')+'">'+(CHIP_LABEL[task.t]||'')+'</span></div>';it.addEventListener('click',()=>toggleTask(task.id,it));c.appendChild(it)});body.appendChild(c)})}
 
-// ── Navigation ────────────────────────────────────────────────────
-function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-' + tab).classList.add('active');
-  btn.classList.add('active');
-  if (tab === 'progress') renderProgress();
-  if (tab === 'spo2') renderSpo2History();
-  if (tab === 'meds') renderMeds();
-}
+async function toggleTask(id,el){if(navigator.vibrate)navigator.vibrate(15);const dk=today(),k=dk+'_'+id;if(completions.has(id)){completions.delete(id);el.classList.remove('done');await DB.deleteItem('checklist',k)}else{completions.add(id);el.classList.add('done');await DB.put('checklist',{key:k,date:dk,taskId:id,ts:Date.now()})}updateProgress();await saveStreak()}
 
-// ── TODAY TAB ─────────────────────────────────────────────────────
-function buildChecklist() {
-  const body = document.getElementById('checklist-body');
-  body.innerHTML = '';
-  const grouped = {};
-  SESSION_ORDER.forEach(s => grouped[s] = []);
-  TASKS.forEach(t => (grouped[t.s] || []).push(t));
-  SESSION_ORDER.forEach(s => {
-    if (!grouped[s].length) return;
-    const lbl = document.createElement('div');
-    lbl.className = 'session-label';
-    lbl.textContent = SESSIONS[s];
-    body.appendChild(lbl);
-    const card = document.createElement('div');
-    card.className = 'card';
-    grouped[s].forEach(task => {
-      const item = document.createElement('div');
-      item.className = 'task-item' + (completions.has(task.id) ? ' done' : '');
-      item.dataset.id = task.id;
-      item.innerHTML = `
-        <div class="task-check"></div>
-        <div class="task-content">
-          <div class="task-name">${task.n}</div>
-          <div class="task-detail">${task.d}</div>
-          <span class="chip ${CHIP_CLASS[task.t]||'chip-mon'}">${CHIP_LABEL[task.t]||''}</span>
-        </div>`;
-      item.addEventListener('click', () => toggleTask(task.id, item));
-      card.appendChild(item);
-    });
-    body.appendChild(card);
-  });
-}
+function updateProgress(){const done=validCompletionCount(),total=getTodayTasks().length,pct=total?Math.round((done/total)*100):0;const circ=2*Math.PI*30;document.getElementById('ring-fill').style.strokeDashoffset=circ*(1-pct/100);document.getElementById('ring-pct').textContent=pct+'%';document.getElementById('summary-pct').textContent=pct+'%';document.getElementById('tasks-done').textContent=done+' of '+total+' tasks done';const msgs=[[0,"Let's start strong today!"],[25,'Good start \u2014 keep going!'],[50,'Halfway there!'],[75,'Almost done \u2014 finish strong!'],[100,'100% complete! Great work!']];let msg=msgs[0][1];for(const[t,m]of msgs)if(pct>=t)msg=m;document.getElementById('summary-sub').textContent=msg}
 
-async function toggleTask(id, el) {
-  const dateKey = today();
-  const key = dateKey + '_' + id;
-  if (completions.has(id)) {
-    completions.delete(id);
-    el.classList.remove('done');
-    await DB.deleteItem('checklist', key);
-  } else {
-    completions.add(id);
-    el.classList.add('done');
-    await DB.put('checklist', {key, date: dateKey, taskId: id, ts: Date.now()});
-  }
-  updateProgress();
-  await saveStreak();
-}
+async function loadTodayChecklist(){const r=await DB.getByIndex('checklist','date',today());const valid=new Set(TASKS.map(t=>t.id));completions=new Set(r.map(x=>x.taskId).filter(id=>valid.has(id)))}
 
-function updateProgress() {
-  const done = completions.size;
-  const total = TASKS.length;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const circ = 2 * Math.PI * 30;
-  document.getElementById('ring-fill').style.strokeDashoffset = circ * (1 - pct/100);
-  document.getElementById('ring-pct').textContent = pct + '%';
-  document.getElementById('summary-pct').textContent = pct + '%';
-  document.getElementById('tasks-done').textContent = done + ' of ' + total + ' tasks done';
-  const msgs = [[0,'Let\'s start strong today!'],[25,'Good start — keep going!'],[50,'Halfway there!'],[75,'Almost done — finish strong!'],[100,'100% complete! Great work!']];
-  let msg = msgs[0][1];
-  for (const [t,m] of msgs) if (pct >= t) msg = m;
-  document.getElementById('summary-sub').textContent = msg;
-}
+async function saveStreak(){const done=validCompletionCount(),total=getTodayTasks().length,pct=total?Math.round((done/total)*100):0;await DB.put('checklist',{key:'day_'+today(),date:today(),taskId:'__summary__',pct,done,total,ts:Date.now()});await renderStreak()}
 
-async function loadTodayChecklist() {
-  const records = await DB.getByIndex('checklist', 'date', today());
-  completions = new Set(records.map(r => r.taskId));
-}
+async function renderStreak(){const days=dateRange(30),lo=days[0],hi=days[days.length-1];const all=await DB.getRange('checklist','date',lo,hi);const sm={};for(const r of all)if(r.taskId==='__summary__')sm[r.date]=r.pct;let streak=0;const ts=today();for(const d of[...days].reverse()){if(d>ts)continue;if((sm[d]||0)>=70)streak++;else if(d<ts)break}let best=0,cur=0;for(const d of days){if((sm[d]||0)>=70){cur++;best=Math.max(best,cur)}else cur=0}document.getElementById('streak-header').textContent='\uD83D\uDD25 '+streak;document.getElementById('streak-big').textContent=streak;document.getElementById('streak-best-text').textContent='Best streak: '+best+' days';return{summaries:sm,streak}}
 
-async function saveStreak() {
-  const done = completions.size;
-  const total = TASKS.length;
-  const pct = total ? Math.round((done/total)*100) : 0;
-  const key = 'day_' + today();
-  await DB.put('spo2', undefined); // no-op, just using the checklist store
-  // Store daily summary in a meta key via checklist store
-  await DB.put('checklist', {key, date: today(), taskId: '__summary__', pct, done, total, ts: Date.now()});
-  renderStreak();
-}
+function updateSpo2Display(){const v=parseInt(document.getElementById('inp-spo2').value);const d=document.getElementById('spo2-display'),s=document.getElementById('spo2-status');if(!v){d.textContent='\u2014';s.textContent='';return}d.textContent=v+'%';d.className='spo2-value-display '+(v>=95?'spo2-ok':v>=93?'spo2-warn':'spo2-bad');s.textContent=v>=95?'\u2713 Normal range':v>=93?'\u26A0 Slightly low \u2014 rest & monitor':'\u26D4 Low \u2014 call doctor immediately';s.style.color=v>=95?'var(--success)':v>=93?'var(--warn)':'var(--danger)'}
 
-// ── STREAK ────────────────────────────────────────────────────────
-async function renderStreak() {
-  const dates = dateRange(30);
-  let streak = 0;
-  let bestStreak = 0;
-  let cur = 0;
-  const summaries = {};
-  for (const d of dates) {
-    const records = await DB.getByIndex('checklist', 'date', d);
-    const summary = records.find(r => r.taskId === '__summary__');
-    if (summary) summaries[d] = summary.pct;
-  }
-  // Calculate streak backwards from today
-  const allDates = dateRange(30).reverse();
-  for (const d of allDates) {
-    if ((summaries[d] || 0) >= 70) { cur++; bestStreak = Math.max(bestStreak, cur); if (d === today() || streak > 0) streak = cur; }
-    else { if (d < today()) { bestStreak = Math.max(bestStreak, cur); cur = 0; if (streak === 0) streak = 0; } }
-  }
-  // Simpler: just count from today backwards
-  streak = 0;
-  const todayStr = today();
-  const sortedDates = dateRange(60).reverse();
-  for (const d of sortedDates) {
-    if (d > todayStr) continue;
-    if ((summaries[d] || 0) >= 70) streak++;
-    else if (d < todayStr) break;
-  }
-  document.getElementById('streak-header').textContent = '🔥 ' + streak;
-  document.getElementById('streak-big').textContent = streak;
-  document.getElementById('streak-best-text').textContent = 'Best streak: ' + bestStreak + ' days';
-  return {summaries, streak};
-}
+async function saveSpo2(){const v=parseInt(document.getElementById('inp-spo2').value);if(!v||v<70||v>100){alert('Enter a valid SpO2 value (70\u2013100)');return}await DB.add('spo2',{date:today(),time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),spo2:v,pulse:document.getElementById('inp-pulse').value||null,feeling:document.getElementById('inp-feeling').value,notes:document.getElementById('inp-notes').value,ts:Date.now()});if(navigator.vibrate)navigator.vibrate(20);['inp-spo2','inp-pulse','inp-feeling','inp-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('spo2-display').textContent='\u2014';document.getElementById('spo2-status').textContent='';renderSpo2History()}
 
-// ── SPO2 TAB ──────────────────────────────────────────────────────
-function updateSpo2Display() {
-  const val = parseInt(document.getElementById('inp-spo2').value);
-  const disp = document.getElementById('spo2-display');
-  const stat = document.getElementById('spo2-status');
-  if (!val) { disp.textContent = '—'; stat.textContent = ''; return; }
-  disp.textContent = val + '%';
-  disp.className = 'spo2-value-display ' + (val >= 95 ? 'spo2-ok' : val >= 93 ? 'spo2-warn' : 'spo2-bad');
-  stat.textContent = val >= 95 ? '✓ Normal range' : val >= 93 ? '⚠ Slightly low — rest & monitor' : '⛔ Low — call doctor immediately';
-  stat.style.color = val >= 95 ? 'var(--success)' : val >= 93 ? 'var(--warn)' : 'var(--danger)';
-}
+async function renderSpo2History(){const days=dateRange(14);const recs=await DB.getRange('spo2','date',days[0],days[days.length-1]);const valid=recs.filter(x=>x.spo2).sort((a,b)=>b.ts-a.ts);const el=document.getElementById('spo2-history');if(!valid.length){el.innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><p>No readings yet.<br>Log your first SpO2 reading above.</p></div>';return}el.innerHTML=valid.slice(0,20).map(r=>{const c=r.spo2>=95?'spo2-ok':r.spo2>=93?'spo2-warn':'spo2-bad';return'<div class="log-item"><div class="log-spo2 '+c+'">'+r.spo2+'%</div><div class="log-meta"><div class="log-date">'+fmtDate(r.date)+' \u00B7 '+r.time+(r.feeling?' \u00B7 '+r.feeling:'')+'</div>'+(r.notes?'<div class="log-notes">'+r.notes+'</div>':'')+'</div>'+(r.pulse?'<div class="log-pulse">'+r.pulse+'<br><span style="font-size:10px;color:var(--text-3)">bpm</span></div>':'')+'</div>'}).join('')}
 
-async function saveSpo2() {
-  const val = parseInt(document.getElementById('inp-spo2').value);
-  if (!val || val < 70 || val > 100) { alert('Enter a valid SpO2 value (70–100)'); return; }
-  const pulse = document.getElementById('inp-pulse').value;
-  const feeling = document.getElementById('inp-feeling').value;
-  const notes = document.getElementById('inp-notes').value;
-  await DB.add('spo2', {date: today(), time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}), spo2: val, pulse: pulse||null, feeling, notes, ts: Date.now()});
-  document.getElementById('inp-spo2').value = '';
-  document.getElementById('inp-pulse').value = '';
-  document.getElementById('inp-feeling').value = '';
-  document.getElementById('inp-notes').value = '';
-  document.getElementById('spo2-display').textContent = '—';
-  document.getElementById('spo2-status').textContent = '';
-  renderSpo2History();
-}
+async function loadTodayMeds(){const r=await DB.getByIndex('meds','date',today());medCompletions=new Set(r.map(x=>x.medId))}
+function renderMeds(){const b=document.getElementById('meds-body');b.innerHTML='<div class="med-time-header">Morning medications</div><div class="card" style="margin:0 16px 8px">'+MEDS.filter(m=>m.time==='am').map(medHtml).join('')+'</div><div class="med-time-header">Evening medications</div><div class="card" style="margin:0 16px 16px">'+MEDS.filter(m=>m.time==='pm').map(medHtml).join('')+'</div>';b.querySelectorAll('.med-item').forEach(el=>{el.addEventListener('click',()=>toggleMed(el.dataset.id))})}
+function medHtml(m){const d=medCompletions.has(m.id);return'<div class="med-item'+(d?' taken':'')+'" data-id="'+m.id+'"><div class="med-icon">'+(d?'\u2713':m.icon)+'</div><div class="med-info"><div class="med-name">'+m.n+'</div><div class="med-sub">'+m.sub+'</div></div><div class="med-status">'+(d?'Taken':'Pending')+'</div></div>'}
+async function toggleMed(id){if(navigator.vibrate)navigator.vibrate(15);const dk=today(),k=dk+'_'+id;if(medCompletions.has(id)){medCompletions.delete(id);await DB.deleteItem('meds',k)}else{medCompletions.add(id);await DB.put('meds',{key:k,date:dk,medId:id,ts:Date.now()})}renderMeds()}
 
-async function renderSpo2History() {
-  const dates = dateRange(14);
-  const records = [];
-  for (const d of dates) {
-    const r = await DB.getByIndex('spo2', 'date', d);
-    records.push(...r.filter(x => x.spo2));
-  }
-  records.sort((a,b) => b.ts - a.ts);
-  const el = document.getElementById('spo2-history');
-  if (!records.length) {
-    el.innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><p>No readings yet.<br>Log your first SpO2 reading above.</p></div>';
-    return;
-  }
-  el.innerHTML = records.slice(0,20).map(r => {
-    const cls = r.spo2 >= 95 ? 'spo2-ok' : r.spo2 >= 93 ? 'spo2-warn' : 'spo2-bad';
-    return `<div class="log-item">
-      <div class="log-spo2 ${cls}">${r.spo2}%</div>
-      <div class="log-meta">
-        <div class="log-date">${fmtDate(r.date)} · ${r.time}${r.feeling ? ' · ' + r.feeling : ''}</div>
-        ${r.notes ? `<div class="log-notes">${r.notes}</div>` : ''}
-      </div>
-      ${r.pulse ? `<div class="log-pulse">${r.pulse}<br><span style="font-size:10px;color:var(--text-3)">bpm</span></div>` : ''}
-    </div>`;
-  }).join('');
-}
+async function renderProgress(){const{summaries:sm,streak}=await renderStreak();const wk=dateRange(7),ts=today();document.getElementById('week-grid').innerHTML=wk.map(d=>{const p=sm[d]||0,iT=d===ts,iF=d>ts;let c=iF?'future':p>=80?'great':p>=50?'good':p>=20?'partial':'miss';if(iT)c+=' today';return'<div class="week-day"><div class="week-label">'+dayLabel(d)+'</div><div class="week-dot '+c+'">'+(iF?'':p?p+'%':'\u2014')+'</div></div>'}).join('');const vw=wk.filter(d=>d<=ts&&sm[d]!==undefined),avg=vw.length?Math.round(vw.reduce((s,d)=>s+(sm[d]||0),0)/vw.length):0;document.getElementById('stat-avg').textContent=avg+'%';document.getElementById('stat-total').textContent=Object.keys(sm).length;const hist=dateRange(14).filter(d=>d<=ts).reverse(),hEl=document.getElementById('history-list');if(!hist.some(d=>sm[d])){hEl.innerHTML='<div class="empty-state" style="padding:24px"><p>Complete some tasks to see history.</p></div>';return}hEl.innerHTML=hist.map(d=>{const p=sm[d]||0,clr=p>=80?'var(--pri)':p>=50?'var(--warn)':'var(--danger)';return'<div class="history-item"><div class="history-date">'+fmtDate(d)+'</div><div class="history-bar-wrap"><div class="history-bar" style="width:'+p+'%;background:'+clr+'"></div></div><div class="history-pct" style="color:'+clr+'">'+p+'%</div></div>'}).join('')}
 
-// ── MEDS TAB ──────────────────────────────────────────────────────
-async function loadTodayMeds() {
-  const records = await DB.getByIndex('meds', 'date', today());
-  medCompletions = new Set(records.map(r => r.medId));
-}
+function updateHeader(){document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.remove('hidden')});
+document.getElementById('install-btn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')dismissInstall();deferredPrompt=null};
+function dismissInstall(){document.getElementById('install-banner').classList.add('hidden')}
+window.addEventListener('appinstalled',dismissInstall);
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW:',e));
 
-function renderMeds() {
-  const body = document.getElementById('meds-body');
-  const amMeds = MEDS.filter(m => m.time === 'am');
-  const pmMeds = MEDS.filter(m => m.time === 'pm');
-  body.innerHTML = `
-    <div class="med-time-header">Morning medications</div>
-    <div class="card" style="margin:0 16px 8px">${amMeds.map(medHtml).join('')}</div>
-    <div class="med-time-header">Evening medications</div>
-    <div class="card" style="margin:0 16px 16px">${pmMeds.map(medHtml).join('')}</div>
-  `;
-  body.querySelectorAll('.med-item').forEach(el => {
-    el.addEventListener('click', () => toggleMed(el.dataset.id, el));
-  });
-}
-
-function medHtml(m) {
-  const done = medCompletions.has(m.id);
-  return `<div class="med-item${done?' taken':''}" data-id="${m.id}">
-    <div class="med-icon">${done ? '✓' : m.icon}</div>
-    <div class="med-info">
-      <div class="med-name">${m.n}</div>
-      <div class="med-sub">${m.sub}</div>
-    </div>
-    <div class="med-status">${done ? 'Taken' : 'Pending'}</div>
-  </div>`;
-}
-
-async function toggleMed(id, el) {
-  const dateKey = today();
-  const key = dateKey + '_' + id;
-  if (medCompletions.has(id)) {
-    medCompletions.delete(id);
-    await DB.deleteItem('meds', key);
-  } else {
-    medCompletions.add(id);
-    await DB.put('meds', {key, date: dateKey, medId: id, ts: Date.now()});
-  }
-  renderMeds();
-}
-
-// ── PROGRESS TAB ──────────────────────────────────────────────────
-async function renderProgress() {
-  const {summaries, streak} = await renderStreak();
-  const week = dateRange(7);
-  const weekGrid = document.getElementById('week-grid');
-  const todayStr = today();
-  weekGrid.innerHTML = week.map(d => {
-    const pct = summaries[d] || 0;
-    const isToday = d === todayStr;
-    const isFuture = d > todayStr;
-    let cls = isFuture ? 'future' : pct >= 80 ? 'great' : pct >= 50 ? 'good' : pct >= 20 ? 'partial' : 'miss';
-    if (isToday) cls += ' today';
-    const label = isFuture ? '' : pct ? pct+'%' : '—';
-    return `<div class="week-day">
-      <div class="week-label">${dayLabel(d)}</div>
-      <div class="week-dot ${cls}">${label}</div>
-    </div>`;
-  }).join('');
-
-  // Stats
-  const validWeek = week.filter(d => d <= todayStr && summaries[d] !== undefined);
-  const avg = validWeek.length ? Math.round(validWeek.reduce((s,d) => s + (summaries[d]||0), 0) / validWeek.length) : 0;
-  document.getElementById('stat-avg').textContent = avg + '%';
-  document.getElementById('stat-total').textContent = Object.keys(summaries).length;
-
-  // History
-  const hist = dateRange(14).filter(d => d <= todayStr).reverse();
-  const histEl = document.getElementById('history-list');
-  if (!hist.some(d => summaries[d])) {
-    histEl.innerHTML = '<div class="empty-state" style="padding:24px"><p>Complete some tasks to see history.</p></div>';
-    return;
-  }
-  histEl.innerHTML = hist.map(d => {
-    const pct = summaries[d] || 0;
-    const clr = pct >= 80 ? 'var(--teal)' : pct >= 50 ? 'var(--warn)' : 'var(--danger)';
-    return `<div class="history-item">
-      <div class="history-date">${fmtDate(d)}</div>
-      <div class="history-bar-wrap"><div class="history-bar" style="width:${pct}%;background:${clr}"></div></div>
-      <div class="history-pct" style="color:${clr}">${pct}%</div>
-    </div>`;
-  }).join('');
-}
-
-// ── HEADER ────────────────────────────────────────────────────────
-function updateHeader() {
-  const now = new Date();
-  document.getElementById('header-date').textContent = now.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'});
-}
-
-// ── PWA INSTALL ───────────────────────────────────────────────────
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const banner = document.getElementById('install-banner');
-  banner.classList.remove('hidden');
-  banner.style.display = 'flex';
-});
-document.getElementById('install-btn').onclick = async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const {outcome} = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') dismissInstall();
-  deferredPrompt = null;
-};
-function dismissInstall() {
-  const b = document.getElementById('install-banner');
-  b.style.display = 'none';
-  b.classList.add('hidden');
-}
-window.addEventListener('appinstalled', dismissInstall);
-
-// ── SERVICE WORKER ────────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW reg failed:', e));
-}
-
-// ── INIT ──────────────────────────────────────────────────────────
-async function init() {
-  await DB.open();
-  updateHeader();
-  await loadTodayChecklist();
-  await loadTodayMeds();
-  buildChecklist();
-  updateProgress();
-  await renderStreak();
-  renderMeds();
-  // Auto-render progress summary on load
-  const pct = TASKS.length ? Math.round((completions.size / TASKS.length) * 100) : 0;
-  if (pct > 0) await saveStreak();
-}
-
-init().catch(console.error);
+async function startApp(){await DB.open();updateHeader();await loadTodayChecklist();await loadTodayMeds();buildChecklist();updateProgress();await renderStreak();renderMeds();if(validCompletionCount()>0)await saveStreak()}
+Auth.initAuth().catch(console.error);
 </script>
 </body>
 </html>
