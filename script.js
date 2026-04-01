@@ -78,6 +78,8 @@ const Auth = {
         currentUid = user.uid;
         this.cleanupOldAuth();
         this.unlock();
+      } else {
+        document.getElementById('auth-screen').classList.remove('hidden');
       }
     });
   },
@@ -1373,36 +1375,34 @@ function isNotifEnabled() {
   return localStorage.getItem('lc_fcm_enabled') === '1';
 }
 
+async function saveFCMToken() {
+  const deviceId = getDeviceId();
+  const reg = await navigator.serviceWorker.ready;
+  const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+  await fsDb
+    .collection('devices')
+    .doc(deviceId)
+    .set({ token, uid: currentUid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
 async function toggleNotifications() {
   const deviceId = getDeviceId();
   if (isNotifEnabled()) {
-    // Disable
-    try {
-      await fbMessaging.deleteToken();
-    } catch {}
-    try {
-      await fsDb.collection('devices').doc(deviceId).delete();
-    } catch {}
+    try { await fbMessaging.deleteToken(); } catch (e) { console.warn('FCM delete:', e); }
+    try { await fsDb.collection('devices').doc(deviceId).delete(); } catch (e) { console.warn('Device delete:', e); }
     localStorage.removeItem('lc_fcm_enabled');
   } else {
-    // Enable
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') {
       document.getElementById('notif-status').textContent = 'Permission denied. Enable in browser settings.';
       return;
     }
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
-      await fsDb
-        .collection('devices')
-        .doc(deviceId)
-        .set({ token, uid: currentUid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      await saveFCMToken();
       localStorage.setItem('lc_fcm_enabled', '1');
       document.getElementById('notif-status').textContent =
         'Notifications enabled! You\u2019ll get reminders for each task.';
     } catch (e) {
-      void 0; /* FCM setup error */
       document.getElementById('notif-status').textContent = 'Setup failed: ' + e.message;
       return;
     }
@@ -1417,17 +1417,10 @@ function updateNotifToggle() {
   if (status) status.textContent = isNotifEnabled() ? 'Reminders active \u2014 15 daily notifications' : '';
 }
 
-// Refresh FCM token on each app start (tokens can rotate)
 async function refreshFCMToken() {
   if (!isNotifEnabled()) return;
   try {
-    const deviceId = getDeviceId();
-    const reg = await navigator.serviceWorker.ready;
-    const token = await fbMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
-    await fsDb
-      .collection('devices')
-      .doc(deviceId)
-      .set({ token, uid: currentUid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await saveFCMToken();
   } catch (e) {
     console.warn('FCM refresh:', e);
   }

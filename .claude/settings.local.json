@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(firebase deploy:*)",
-      "Bash(npx firebase:*)"
+      "Bash(npx firebase:*)",
+      "Bash(grep -r firebase-messaging-sw C:/Users/rajku/coding/lungcare --include=*.js --include=*.json --include=*.html)"
     ]
   }
 }

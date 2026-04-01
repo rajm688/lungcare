@@ -98,31 +98,14 @@ exports.sendReminders = functionsV1.pubsub
       try {
         await messaging.send({
           token,
-          notification: {
-            title: reminder.title,
-            body: reminder.body
-          },
           data: {
+            title: reminder.title,
+            body: reminder.body,
             tag: 'lungcare-' + key.replace(':', ''),
-            click_action: './'
-          },
-          android: {
-            priority: 'high',
-            notification: {
-              sound: 'default',
-              channelId: 'lungcare-reminders',
-              icon: 'ic_notification'
-            }
+            icon: 'https://lungcare-721be.web.app/icons/icon-192.svg'
           },
           webpush: {
-            notification: {
-              icon: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-              badge: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-              vibrate: [200, 100, 200]
-            },
-            fcmOptions: {
-              link: './'
-            }
+            headers: { Urgency: 'high', TTL: '300' }
           }
         });
         console.log(`Sent reminder to ${doc.id}: ${key} - ${reminder.title}`);
@@ -162,19 +145,14 @@ exports.sendTestNotification = onCall(async (request) => {
     try {
       await messaging.send({
         token,
-        notification: {
-          title: 'LungCare \u2014 Test',
-          body: 'Firebase notifications are working! You\u2019ll receive 15 daily reminders.'
-        },
         data: {
-          tag: 'lungcare-test'
+          title: 'LungCare \u2014 Test',
+          body: 'Firebase notifications are working! You\u2019ll receive 15 daily reminders.',
+          tag: 'lungcare-test',
+          icon: 'https://lungcare-721be.web.app/icons/icon-192.svg'
         },
         webpush: {
-          notification: {
-            icon: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-            badge: 'https://lungcare-721be.web.app/icons/icon-192.svg',
-            vibrate: [200, 100, 200]
-          }
+          headers: { Urgency: 'high', TTL: '300' }
         }
       });
       sent++;
