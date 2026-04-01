@@ -1,4 +1,5 @@
-const functions = require('firebase-functions');
+const functionsV1 = require('firebase-functions/v1');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
@@ -69,12 +70,11 @@ const SCHEDULE = {
   }
 };
 
-// Runs every 15 minutes, checks if it's time for a reminder
-exports.sendReminders = functions.pubsub
+// Runs every 15 minutes (Gen 1 — already deployed)
+exports.sendReminders = functionsV1.pubsub
   .schedule('*/15 * * * *')
   .timeZone('Asia/Kolkata')
   .onRun(async () => {
-    // Get current IST time rounded to 15-min boundary
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const h = String(now.getHours()).padStart(2, '0');
     const m = String(Math.floor(now.getMinutes() / 15) * 15).padStart(2, '0');
@@ -83,7 +83,6 @@ exports.sendReminders = functions.pubsub
     const reminder = SCHEDULE[key];
     if (!reminder) return null;
 
-    // Get FCM token from Firestore
     const doc = await db.collection('devices').doc('default').get();
     if (!doc.exists || !doc.data().token) {
       console.log('No FCM token found');
@@ -125,7 +124,6 @@ exports.sendReminders = functions.pubsub
       console.log(`Sent reminder: ${key} - ${reminder.title}`);
     } catch (err) {
       console.error('FCM send error:', err.code, err.message);
-      // Clean up invalid tokens
       if (
         err.code === 'messaging/registration-token-not-registered' ||
         err.code === 'messaging/invalid-registration-token'
@@ -138,11 +136,11 @@ exports.sendReminders = functions.pubsub
     return null;
   });
 
-// Callable function to send a test push notification
-exports.sendTestNotification = functions.https.onCall(async (data, context) => {
+// Callable function to send a test push notification (Gen 2)
+exports.sendTestNotification = onCall(async (request) => {
   const doc = await db.collection('devices').doc('default').get();
   if (!doc.exists || !doc.data().token) {
-    throw new functions.https.HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
+    throw new HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
   }
 
   const token = doc.data().token;
@@ -172,11 +170,8 @@ exports.sendTestNotification = functions.https.onCall(async (data, context) => {
       err.code === 'messaging/invalid-registration-token'
     ) {
       await db.collection('devices').doc('default').delete();
-      throw new functions.https.HttpsError(
-        'failed-precondition',
-        'Token expired. Please toggle notifications off and on again.'
-      );
+      throw new HttpsError('failed-precondition', 'Token expired. Please toggle notifications off and on again.');
     }
-    throw new functions.https.HttpsError('internal', 'Send failed: ' + err.message);
+    throw new HttpsError('internal', 'Send failed: ' + err.message);
   }
 });
