@@ -61,7 +61,7 @@ const TASKS=[
 {id:'spo2-wake',s:'morning',n:'Check SpO2 on waking',d:'Target \u2265 95%. Below 93% \u2192 sit upright, call doctor.',t:'mon'},
 {id:'postural',s:'morning',n:'Postural drainage \u2014 10 min',d:'Head lower than chest. Gravity drains mucus before clearance.',t:'clear'},
 {id:'nasal-wash',s:'morning',n:'Nasal saline wash',d:'Lukewarm 37\u00B0C RO water + Jala Neti salt. Daily now, not weekly.',t:'nasal'},
-{id:'forocot-am',s:'morning',n:'Forocot G \u2014 1 puff (morning)',d:'Always first. Wait 10\u201315 min before Aerobika. Rinse mouth.',t:'med'},
+{id:'forocot-am',s:'morning',n:'Forocot G \u2014 1 puff (9 AM)',d:'Take around 9 AM. Wait 10\u201315 min. Rinse mouth after.',t:'med'},
 {id:'aerobika-am',s:'morning',n:'Aerobika \u2014 5 cycles',d:'Inhale \u2192 hold 2s \u2192 exhale through device \u2192 huff cough after.',t:'clear'},
 {id:'spiro',s:'morning',n:'Spirometer \u2014 10 deep breaths',d:'Hold 3s each. Do before Aerobika. Mon/Wed/Fri only.',t:'ex',days:[1,3,5]},
 {id:'core-am',s:'morning',n:'Core: belly breathing + pelvic tilt',d:'10 diaphragmatic breaths + 10 pelvic tilts on back. 5 min.',t:'core'},
@@ -74,7 +74,7 @@ const TASKS=[
 {id:'water',s:'day',n:'Water \u2014 2.5 litres by 4 PM',d:'Warm or room temp only. No cold water. Thin mucus = easier clearance.',t:'hyd'},
 {id:'snack-pm',s:'day',n:'Afternoon snack (4 PM)',d:'Ragi malt / peanut butter toast / steamed sweet potato.',t:'food'},
 {id:'chin-tuck',s:'day',n:'Chin tuck \u2014 10 reps \u00D7 3 today',d:'Pull chin back, hold 5s. Corrects forward head posture.',t:'pos'},
-{id:'forocot-pm',s:'evening',n:'Forocot G \u2014 1 puff (evening)',d:'Second dose. Wait 10\u201315 min. Rinse mouth after.',t:'med'},
+{id:'forocot-pm',s:'night',n:'Forocot G \u2014 1 puff (9 PM)',d:'Second dose around 9 PM. Wait 10\u201315 min. Rinse mouth after.',t:'med'},
 {id:'aerobika-pm',s:'evening',n:'Aerobika \u2014 evening 5 cycles',d:'Critical before sleep. Same technique as morning.',t:'clear'},
 {id:'core-pm',s:'evening',n:'Core + strength exercises (4\u00D7/week)',d:'Dead bug, glute bridge, bird-dog, wall sit. 20 min.',t:'core'},
 {id:'walk-pm',s:'evening',n:'Evening walk \u2014 20\u201330 min',d:'Park preferred. SpO2 should return to baseline within 3 min.',t:'ex'},
@@ -431,18 +431,61 @@ async function refreshFCMToken(){
   }catch(e){console.warn('FCM refresh:',e)}
 }
 
+// Notification icon (shared by foreground handler + test)
+const NOTIF_ICON='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%236366F1"/><g transform="translate(32,32) scale(1.4) translate(-20,-17.5)"><path d="M14 30C10 26 9 19 11 13C13 8 17 6 20 8C21 9 22 12 22 15V32C20 33 17 32 14 30Z" fill="white" opacity=".9"/><path d="M26 30C30 26 31 19 29 13C27 8 23 6 20 8C19 9 18 12 18 15V32C20 33 23 32 26 30Z" fill="white" opacity=".9"/><rect x="18.5" y="2" width="3" height="10" rx="1.5" fill="white"/></g></svg>';
+
 // Handle foreground messages
 fbMessaging.onMessage((payload)=>{
   const title=payload.notification?.title||payload.data?.title||'LungCare';
   const body=payload.notification?.body||payload.data?.body||'';
   // Show native notification even in foreground
   if(Notification.permission==='granted'){
-    new Notification(title,{body,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%236366F1"/><text x="32" y="44" font-size="32" text-anchor="middle" fill="white">\uD83E\uDEC1</text></svg>',tag:payload.data?.tag||'lungcare'});
+    new Notification(title,{body,icon:NOTIF_ICON,tag:payload.data?.tag||'lungcare'});
   }
 });
 
+/* ── Test Notification ── */
+
+async function testNotification(){
+  const status=document.getElementById('notif-status');
+  if(!isNotifEnabled()){status.textContent='Enable push reminders first, then test.';return}
+  status.textContent='Sending test via Firebase...';
+  try{
+    const sendTest=firebase.functions().httpsCallable('sendTestNotification');
+    await sendTest();
+    status.textContent='Test notification sent via Firebase! Check your notifications.';
+  }catch(e){
+    status.textContent='Test failed: '+(e.message||e);
+  }
+}
+
+/* ── Notification Schedule ── */
+const NOTIF_SCHEDULE=[
+  {time:'06:30 AM',title:'Morning Routine',body:'SpO2 check, postural drainage, nasal saline wash'},
+  {time:'07:00 AM',title:'Core & Breakfast',body:'Belly breathing + pelvic tilts, then high-calorie breakfast'},
+  {time:'07:30 AM',title:'Morning Walk',body:'20 min walk (pursed-lip breathing) + doorway chest stretch'},
+  {time:'09:00 AM',title:'Morning Medication',body:'Forocot G morning puff \u2014 wait 10\u201315 min. Rinse mouth after.'},
+  {time:'10:30 AM',title:'Mid-Morning Snack',body:'Nuts + groundnut chikki + coconut water \u2014 never skip!'},
+  {time:'01:00 PM',title:'Lunch Time',body:'Biggest meal \u2014 rice + sambar + dal + curd + ghee (650 kcal)'},
+  {time:'01:30 PM',title:'Post-Lunch Check',body:'Log SpO2 reading + 30 min rest. Sit upright, don\u2019t lie flat.'},
+  {time:'03:00 PM',title:'Hydration Check',body:'Target 2.5L by 4 PM \u2014 warm or room temp water only'},
+  {time:'04:00 PM',title:'Afternoon Tasks',body:'Afternoon snack + chin tuck exercises (10 reps \u00D7 3)'},
+  {time:'06:00 PM',title:'Evening Routine',body:'Aerobika 5 cycles + core + strength exercises'},
+  {time:'06:30 PM',title:'Evening Walk',body:'20\u201330 min walk, then dinner before 8 PM'},
+  {time:'07:30 PM',title:'Dinner Time',body:'Eat before 8 PM \u2014 ragi roti + kurma + dal + ghee'},
+  {time:'08:15 PM',title:'Post-Dinner Walk',body:'10 min walk. Don\u2019t lie flat for 45 min after eating.'},
+  {time:'09:00 PM',title:'Night Medication',body:'Forocot G night puff \u2014 wait 10\u201315 min. Rinse mouth after.'},
+  {time:'10:00 PM',title:'Bedtime',body:'Huff cough, clean devices, sleep \u2014 2 pillows, right side.'}
+];
+
+function renderNotifSchedule(){
+  const el=document.getElementById('notif-schedule');if(!el)return;
+  el.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Schedule (IST) \u2014 15 daily reminders</div>'+
+    NOTIF_SCHEDULE.map(s=>'<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="min-width:68px;font-size:12px;font-weight:700;color:var(--pri)">'+esc(s.time)+'</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">'+esc(s.title)+'</div><div style="font-size:11px;color:var(--text-3);line-height:1.4">'+esc(s.body)+'</div></div></div>').join('');
+}
+
 /* ── Settings ── */
-function showSettings(){renderMedConfig();updateNotifToggle();document.getElementById('settings-modal').classList.add('visible')}
+function showSettings(){renderMedConfig();updateNotifToggle();renderNotifSchedule();document.getElementById('settings-modal').classList.add('visible')}
 function hideSettings(){document.getElementById('settings-modal').classList.remove('visible')}
 function resetPin(){localStorage.removeItem('lc_pin_hash');localStorage.removeItem('lc_pin_salt');localStorage.removeItem('lc_bio_cred');location.reload()}
 

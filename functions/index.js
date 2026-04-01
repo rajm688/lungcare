@@ -11,10 +11,6 @@ const SCHEDULE = {
     title: "Morning Routine",
     body: "SpO2 check, postural drainage, nasal saline wash"
   },
-  "06:45": {
-    title: "Medication Time",
-    body: "Forocot G morning puff \u2192 wait 10-15 min \u2192 Aerobika + Spirometer"
-  },
   "07:00": {
     title: "Core & Breakfast",
     body: "Belly breathing + pelvic tilts, then high-calorie breakfast"
@@ -22,6 +18,10 @@ const SCHEDULE = {
   "07:30": {
     title: "Morning Walk",
     body: "20 min walk (pursed-lip breathing) + doorway chest stretch"
+  },
+  "09:00": {
+    title: "Morning Medication",
+    body: "Forocot G morning puff \u2014 wait 10-15 min. Rinse mouth after."
   },
   "10:30": {
     title: "Mid-Morning Snack",
@@ -44,12 +44,12 @@ const SCHEDULE = {
     body: "Afternoon snack + chin tuck exercises (10 reps \u00D7 3)"
   },
   "18:00": {
-    title: "Evening Medication",
-    body: "Forocot G evening puff + Aerobika 5 cycles"
+    title: "Evening Routine",
+    body: "Aerobika 5 cycles + core + strength exercises"
   },
   "18:30": {
-    title: "Exercise Time",
-    body: "Core + strength exercises, then 20-30 min evening walk"
+    title: "Evening Walk",
+    body: "20-30 min walk, then dinner before 8 PM"
   },
   "19:30": {
     title: "Dinner Time",
@@ -59,13 +59,13 @@ const SCHEDULE = {
     title: "Post-Dinner Walk",
     body: "10 min walk. Don\u2019t lie flat for 45 min after eating."
   },
-  "21:45": {
-    title: "Night Routine",
-    body: "Huff cough, bedtime protein snack, clean all devices"
+  "21:00": {
+    title: "Night Medication",
+    body: "Forocot G night puff \u2014 wait 10-15 min. Rinse mouth after."
   },
   "22:00": {
     title: "Bedtime",
-    body: "Sleep \u2014 2 pillows, right side. Air purifier on. Evening reflection!"
+    body: "Huff cough, clean devices, sleep \u2014 2 pillows, right side."
   }
 };
 
@@ -115,8 +115,8 @@ exports.sendReminders = functions.pubsub
         },
         webpush: {
           notification: {
-            icon: "https://lungcare-721be.web.app/icon-192.png",
-            badge: "https://lungcare-721be.web.app/icon-192.png",
+            icon: "https://lungcare-721be.web.app/icon-192.svg",
+            badge: "https://lungcare-721be.web.app/icon-192.svg",
             vibrate: [200, 100, 200]
           },
           fcmOptions: {
@@ -139,3 +139,49 @@ exports.sendReminders = functions.pubsub
 
     return null;
   });
+
+// Callable function to send a test push notification
+exports.sendTestNotification = functions.https.onCall(async (data, context) => {
+  const doc = await db.collection("devices").doc("default").get();
+  if (!doc.exists || !doc.data().token) {
+    throw new functions.https.HttpsError(
+      "not-found",
+      "No FCM token found. Enable push reminders first."
+    );
+  }
+
+  const token = doc.data().token;
+
+  try {
+    await messaging.send({
+      token,
+      notification: {
+        title: "LungCare \u2014 Test",
+        body: "Firebase notifications are working! You\u2019ll receive 15 daily reminders."
+      },
+      data: {
+        tag: "lungcare-test"
+      },
+      webpush: {
+        notification: {
+          icon: "https://lungcare-721be.web.app/icon-192.svg",
+          badge: "https://lungcare-721be.web.app/icon-192.svg",
+          vibrate: [200, 100, 200]
+        }
+      }
+    });
+    return { success: true };
+  } catch (err) {
+    if (
+      err.code === "messaging/registration-token-not-registered" ||
+      err.code === "messaging/invalid-registration-token"
+    ) {
+      await db.collection("devices").doc("default").delete();
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Token expired. Please toggle notifications off and on again."
+      );
+    }
+    throw new functions.https.HttpsError("internal", "Send failed: " + err.message);
+  }
+});

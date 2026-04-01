@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#FFFFFF">
     <meta name="description" content="Personal health tracking application">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:;">
     <title>LungCare</title>
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -199,6 +199,8 @@
             <div class="toggle" id="notif-toggle" onclick="toggleNotifications()"></div>
           </div>
           <div id="notif-status" style="font-size:12px;color:var(--text-3);margin-top:4px"></div>
+          <button class="btn-secondary" onclick="testNotification()" style="margin-top:10px">&#x1F514; Send test notification</button>
+          <div id="notif-schedule"></div>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Medications</div>
@@ -231,6 +233,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
     <script src="script.js"></script>
   </body>
 
