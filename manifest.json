@@ -1,7 +1,7 @@
 {
   "name": "LungCare — Raj Kumar",
   "short_name": "LungCare",
-  "description": "Daily lung health tracker for Kartagener Syndrome & Bronchiectasis",
+  "description": "Personal health tracking application",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",

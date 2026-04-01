@@ -18,7 +18,11 @@ const fbMessaging=firebase.messaging();
 
 /* ── Auth ── */
 const Auth={
-  pin:'',mode:'verify',setupPin:'',attempts:0,lockoutUntil:0,
+  pin:'',mode:'verify',setupPin:'',
+  get attempts(){return parseInt(localStorage.getItem('lc_auth_attempts')||'0')},
+  set attempts(v){localStorage.setItem('lc_auth_attempts',String(v))},
+  get lockoutUntil(){return parseInt(localStorage.getItem('lc_auth_lockout')||'0')},
+  set lockoutUntil(v){localStorage.setItem('lc_auth_lockout',String(v))},
   isLockedOut(){if(Date.now()<this.lockoutUntil)return true;if(this.lockoutUntil>0){this.attempts=0;this.lockoutUntil=0}return false},
   getSalt(){let s=localStorage.getItem('lc_pin_salt');if(!s){s=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('lc_pin_salt',s)}return s},
   async hashPin(p){const salt=this.getSalt();const d=new TextEncoder().encode(salt+p);const h=await crypto.subtle.digest('SHA-256',d);return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')},
@@ -96,7 +100,7 @@ function getMeds(){const c=localStorage.getItem('lc_custom_meds');return c?JSON.
 function saveMedsConfig(meds){localStorage.setItem('lc_custom_meds',JSON.stringify(meds))}
 function addCustomMed(){const name=document.getElementById('med-add-name').value.trim();const sub=document.getElementById('med-add-sub').value.trim();const time=document.getElementById('med-add-time').value;if(!name)return;const meds=getMeds();meds.push({id:'med-'+Date.now(),time,icon:'\uD83D\uDC8A',n:name,sub:sub||name});saveMedsConfig(meds);document.getElementById('med-add-name').value='';document.getElementById('med-add-sub').value='';renderMedConfig();renderMeds()}
 function removeCustomMed(id){saveMedsConfig(getMeds().filter(m=>m.id!==id));renderMedConfig();renderMeds()}
-function renderMedConfig(){const el=document.getElementById('med-config-list');const meds=getMeds();if(!meds.length){el.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:8px 0">No medications configured.</div>';return}el.innerHTML=meds.map(m=>'<div class="med-config-item"><div class="med-config-info"><div class="med-config-name">'+esc(m.n)+'</div><div class="med-config-sub">'+esc(m.sub)+' \u00B7 '+(m.time==='am'?'Morning':'Evening')+'</div></div><button class="med-del-btn" onclick="removeCustomMed(\''+m.id+'\')">\u2715</button></div>').join('')}
+function renderMedConfig(){const el=document.getElementById('med-config-list');const meds=getMeds();if(!meds.length){el.innerHTML='<div style="font-size:13px;color:var(--text-3);padding:8px 0">No medications configured.</div>';return}el.innerHTML=meds.map(m=>'<div class="med-config-item"><div class="med-config-info"><div class="med-config-name">'+esc(m.n)+'</div><div class="med-config-sub">'+esc(m.sub)+' \u00B7 '+(m.time==='am'?'Morning':'Evening')+'</div></div><button class="med-del-btn" data-medid="'+esc(m.id)+'">\u2715</button></div>').join('');el.querySelectorAll('.med-del-btn').forEach(b=>b.addEventListener('click',()=>removeCustomMed(b.dataset.medid)))}
 
 /* ── Firestore DB (replaces IndexedDB) ── */
 const DB={
@@ -157,7 +161,7 @@ const DB={
       let dailylog=[];try{dailylog=await readAll('dailylog')}catch{}
       const total=checklist.length+spo2.length+meds.length+dailylog.length;
       if(total===0){localStorage.setItem('lc_migrated_firestore','1');idb.close();return}
-      console.log('Migrating '+total+' records to Firestore...');
+      /* migration in progress */
       // Batch write in chunks of 400
       const all=[...checklist.map(d=>({col:'checklist',id:d.key,d})),...spo2.map(d=>({col:'spo2',id:null,d})),...meds.map(d=>({col:'meds',id:d.key,d})),...dailylog.map(d=>({col:'dailylog',id:d.date,d}))];
       for(let i=0;i<all.length;i+=400){
@@ -169,7 +173,7 @@ const DB={
         await batch.commit();
       }
       localStorage.setItem('lc_migrated_firestore','1');
-      console.log('Migration complete!');
+      /* migration done */
       idb.close();
     }catch(e){console.warn('Migration:',e);localStorage.setItem('lc_migrated_firestore','1')}
   }
@@ -263,7 +267,7 @@ const _spo2Inp=document.getElementById('inp-spo2');if(_spo2Inp)_spo2Inp.addEvent
 
 function showSpo2Error(msg){const el=document.getElementById('spo2-error');el.textContent=msg;el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),3000)}
 
-async function saveSpo2(){const v=parseInt(document.getElementById('inp-spo2').value);if(!v||v<70||v>100){showSpo2Error('Enter a valid SpO2 value (70\u2013100)');return}await DB.add('spo2',{date:today(),time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),spo2:v,pulse:document.getElementById('inp-pulse').value||null,feeling:document.getElementById('inp-feeling').value,notes:document.getElementById('inp-notes').value,ts:Date.now()});if(navigator.vibrate)navigator.vibrate(20);['inp-spo2','inp-pulse','inp-feeling','inp-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('spo2-display').innerHTML='&mdash;';document.getElementById('spo2-status').textContent='';renderSpo2History();renderSpo2Avg();renderSpo2Chart()}
+async function saveSpo2(){const v=parseInt(document.getElementById('inp-spo2').value);if(!v||v<70||v>100){showSpo2Error('Enter a valid SpO2 value (70\u2013100)');return}await DB.add('spo2',{date:today(),time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),spo2:v,pulse:document.getElementById('inp-pulse').value||null,feeling:document.getElementById('inp-feeling').value,notes:(document.getElementById('inp-notes').value||'').substring(0,500),ts:Date.now()});if(navigator.vibrate)navigator.vibrate(20);['inp-spo2','inp-pulse','inp-feeling','inp-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('spo2-display').innerHTML='&mdash;';document.getElementById('spo2-status').textContent='';renderSpo2History();renderSpo2Avg();renderSpo2Chart()}
 
 async function renderSpo2Avg(){const days=dateRange(7);const recs=await DB.cachedGetRange('spo2','date',days[0],days[days.length-1]);const valid=recs.filter(x=>x.spo2);const el=document.getElementById('spo2-avg-wrap');if(!valid.length){el.innerHTML='';return}const avg=Math.round(valid.reduce((s,r)=>s+r.spo2,0)/valid.length);const min=Math.min(...valid.map(r=>r.spo2)),max=Math.max(...valid.map(r=>r.spo2));const cls=avg>=95?'spo2-ok':avg>=93?'spo2-warn':'spo2-bad';el.innerHTML='<div class="spo2-avg-card"><div class="spo2-avg-val '+cls+'">'+avg+'%</div><div class="spo2-avg-info"><div class="spo2-avg-label">7-day average SpO2</div><div class="spo2-avg-range">Range: '+min+'% \u2013 '+max+'% \u00B7 '+valid.length+' readings</div></div></div>'}
 
@@ -343,7 +347,7 @@ async function saveReflection(){
   const mucusCustomColor=document.getElementById('mucus-custom')?.value||'';
   const mucusVolume=document.getElementById('mucus-volume')?.value||'';
   const mucusConsistency=document.getElementById('mucus-consistency')?.value||'';
-  const notes=document.getElementById('reflection-notes')?.value||'';
+  const notes=(document.getElementById('reflection-notes')?.value||'').substring(0,500);
   dailyLog={date:today(),mood,mucusColor,mucusCustomColor,mucusVolume,mucusConsistency,notes,ts:Date.now()};
   await DB.put('dailylog',dailyLog);
   if(navigator.vibrate)navigator.vibrate(20);
@@ -392,7 +396,7 @@ async function toggleNotifications(){
     // Disable
     try{await fbMessaging.deleteToken()}catch{}
     try{await fsDb.collection('devices').doc('default').delete()}catch{}
-    localStorage.removeItem('lc_fcm_enabled');localStorage.removeItem('lc_fcm_token');
+    localStorage.removeItem('lc_fcm_enabled');
   }else{
     // Enable
     const perm=await Notification.requestPermission();
@@ -401,10 +405,10 @@ async function toggleNotifications(){
       const reg=await navigator.serviceWorker.getRegistration();
       const token=await fbMessaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
       await fsDb.collection('devices').doc('default').set({token,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-      localStorage.setItem('lc_fcm_enabled','1');localStorage.setItem('lc_fcm_token',token);
+      localStorage.setItem('lc_fcm_enabled','1');
       document.getElementById('notif-status').textContent='Notifications enabled! You\u2019ll get reminders for each task.';
     }catch(e){
-      console.error('FCM setup:',e);
+      void 0;/* FCM setup error */
       document.getElementById('notif-status').textContent='Setup failed: '+e.message;return;
     }
   }
@@ -423,12 +427,7 @@ async function refreshFCMToken(){
   try{
     const reg=await navigator.serviceWorker.getRegistration();
     const token=await fbMessaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
-    const oldToken=localStorage.getItem('lc_fcm_token');
-    if(token!==oldToken){
-      await fsDb.collection('devices').doc('default').set({token,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-      localStorage.setItem('lc_fcm_token',token);
-      console.log('FCM token refreshed');
-    }
+    await fsDb.collection('devices').doc('default').set({token,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
   }catch(e){console.warn('FCM refresh:',e)}
 }
 
@@ -455,7 +454,8 @@ async function exportData(){
 }
 async function importData(input){
   const file=input.files[0];if(!file)return;
-  try{const text=await file.text();const data=JSON.parse(text);if(!data.checklist||!data.spo2)throw new Error('Invalid backup');
+  if(file.size>10*1024*1024){showSpo2Error('Backup file too large (max 10MB)');input.value='';return}
+  try{const text=await file.text();const data=JSON.parse(text);if(!Array.isArray(data.checklist)||!Array.isArray(data.spo2))throw new Error('Invalid backup format');
     // Clear Firestore collections
     for(const col of['checklist','spo2','meds','dailylog']){
       const snap=await fsDb.collection(col).get();
