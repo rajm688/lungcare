@@ -1427,6 +1427,73 @@ async function renderProgress() {
       );
     })
     .join('');
+  renderMoodCalendar();
+}
+
+/* ── Mood Calendar ── */
+let moodCalMonth = new Date().getMonth();
+let moodCalYear = new Date().getFullYear();
+
+async function renderMoodCalendar() {
+  const el = document.getElementById('mood-calendar');
+  if (!el) return;
+  const all = await DB.getAll('dailylog');
+  const moodMap = {};
+  all.forEach((l) => {
+    if (l.mood) {
+      const m = MOODS.find((x) => x.id === l.mood);
+      if (m) moodMap[l.date] = m.emoji;
+    }
+  });
+
+  const yr = moodCalYear,
+    mo = moodCalMonth;
+  const firstDay = new Date(yr, mo, 1).getDay();
+  const daysInMonth = new Date(yr, mo + 1, 0).getDate();
+  const todayStr = today();
+  const monthName = new Date(yr, mo).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  let h = '<div class="mcal-nav">';
+  h += '<button class="mcal-btn" onclick="moodCalPrev()">&lsaquo;</button>';
+  h += '<div class="mcal-title">' + esc(monthName) + '</div>';
+  h += '<button class="mcal-btn" onclick="moodCalNext()">&rsaquo;</button>';
+  h += '</div>';
+  h += '<div class="mcal-grid">';
+  ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d) => {
+    h += '<div class="mcal-head">' + d + '</div>';
+  });
+  for (let i = 0; i < firstDay; i++) h += '<div class="mcal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = yr + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const isToday = ds === todayStr;
+    const emoji = moodMap[ds] || '';
+    h += '<div class="mcal-cell' + (isToday ? ' today' : '') + (emoji ? ' has-mood' : '') + '">';
+    h += '<div class="mcal-day">' + d + '</div>';
+    if (emoji) h += '<div class="mcal-emoji">' + emoji + '</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+function moodCalPrev() {
+  moodCalMonth--;
+  if (moodCalMonth < 0) {
+    moodCalMonth = 11;
+    moodCalYear--;
+  }
+  renderMoodCalendar();
+}
+
+function moodCalNext() {
+  const now = new Date();
+  if (moodCalYear > now.getFullYear() || (moodCalYear === now.getFullYear() && moodCalMonth >= now.getMonth())) return;
+  moodCalMonth++;
+  if (moodCalMonth > 11) {
+    moodCalMonth = 0;
+    moodCalYear++;
+  }
+  renderMoodCalendar();
 }
 
 /* ── FCM Notifications ── */
