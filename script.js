@@ -120,38 +120,39 @@ const TASKS = [
     t: 'mon'
   },
   {
-    id: 'postural',
-    s: 'morning',
-    n: 'Postural drainage \u2014 10 min',
-    d: 'Head lower than chest. Gravity drains mucus before clearance.',
-    t: 'clear'
-  },
-  {
     id: 'nasal-wash',
     s: 'morning',
     n: 'Nasal saline wash',
-    d: 'Lukewarm 37\u00B0C RO water + Jala Neti salt. Daily now, not weekly.',
-    t: 'nasal'
+    d: 'Lukewarm 37\u00B0C RO water + Jala Neti salt. Alternate days (Tue/Thu/Sat).',
+    t: 'nasal',
+    days: [2, 4, 6]
   },
   {
     id: 'forocot-am',
     s: 'morning',
     n: 'Forocot G \u2014 1 puff (9 AM)',
-    d: 'Take around 9 AM. Wait 10\u201315 min. Rinse mouth after.',
+    d: 'Opens airways first. Wait 10\u201315 min. Rinse mouth after.',
     t: 'med'
   },
   {
     id: 'aerobika-am',
     s: 'morning',
     n: 'Aerobika \u2014 5 cycles',
-    d: 'Inhale \u2192 hold 2s \u2192 exhale through device \u2192 huff cough after.',
+    d: 'Inhale \u2192 hold 2s \u2192 exhale through device \u2192 huff cough. Loosens mucus.',
+    t: 'clear'
+  },
+  {
+    id: 'postural',
+    s: 'morning',
+    n: 'Postural drainage \u2014 10 min',
+    d: 'Head lower than chest. Drains mucus loosened by Aerobika.',
     t: 'clear'
   },
   {
     id: 'spiro',
     s: 'morning',
     n: 'Spirometer \u2014 10 deep breaths',
-    d: 'Hold 3s each. Do before Aerobika. Mon/Wed/Fri only.',
+    d: 'Hold 3s each. Mon/Wed/Fri only.',
     t: 'ex',
     days: [1, 3, 5]
   },
@@ -161,6 +162,13 @@ const TASKS = [
     n: 'Core: belly breathing + pelvic tilt',
     d: '10 diaphragmatic breaths + 10 pelvic tilts on back. 5 min.',
     t: 'core'
+  },
+  {
+    id: 'stretch',
+    s: 'morning',
+    n: 'Doorway chest stretch \u2014 3\u00D730s',
+    d: 'Lean through doorway, chest opens. Fixes posture.',
+    t: 'pos'
   },
   {
     id: 'breakfast',
@@ -175,13 +183,6 @@ const TASKS = [
     n: 'Morning walk \u2014 20 min',
     d: 'Pursed-lip breathing. N95 near traffic. Check SpO2 after.',
     t: 'ex'
-  },
-  {
-    id: 'stretch',
-    s: 'morning',
-    n: 'Doorway chest stretch \u2014 3\u00D730s',
-    d: 'Lean through doorway, chest opens. Fixes posture.',
-    t: 'pos'
   },
   {
     id: 'snack-am',
@@ -351,7 +352,8 @@ const MUCUS_CONSISTENCY = ['Thin / Watery', 'Normal', 'Thick / Sticky', 'Very Th
 /* ── Configurable medications ── */
 function getMeds() {
   const c = localStorage.getItem('lc_custom_meds');
-  return c ? JSON.parse(c) : DEFAULT_MEDS;
+  if (!c) return DEFAULT_MEDS;
+  try { return JSON.parse(c); } catch (_) { return DEFAULT_MEDS; }
 }
 function saveMedsConfig(meds) {
   localStorage.setItem('lc_custom_meds', JSON.stringify(meds));
@@ -610,11 +612,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   currentTabIdx = newIdx;
   if (tab === 'progress') renderProgress();
-  if (tab === 'spo2') {
-    renderSpo2History();
-    renderSpo2Avg();
-    renderSpo2Chart();
-  }
+  if (tab === 'spo2') refreshSpo2Views();
   if (tab === 'meds') renderMeds();
 }
 
@@ -685,12 +683,18 @@ async function undoLastAction() {
   document.getElementById('undo-toast').classList.remove('visible');
   completions.add(taskId);
   await DB.put('checklist', { key: today() + '_' + taskId, date: today(), taskId, ts: Date.now() });
-  buildChecklist();
+  const el = document.querySelector('[data-id="' + taskId + '"]');
+  if (el) el.classList.add('done');
+  else buildChecklist();
   updateProgress();
-  await saveStreak();
+  saveStreak();
 }
 
+const _toggleLock = new Set();
 async function toggleTask(id, el) {
+  if (_toggleLock.has(id)) return;
+  _toggleLock.add(id);
+  try {
   if (navigator.vibrate) navigator.vibrate(15);
   const dk = today(),
     k = dk + '_' + id;
@@ -705,7 +709,8 @@ async function toggleTask(id, el) {
     await DB.put('checklist', { key: k, date: dk, taskId: id, ts: Date.now() });
   }
   updateProgress();
-  await saveStreak();
+  saveStreak();
+  } finally { _toggleLock.delete(id); }
 }
 
 function updateProgress() {
@@ -735,20 +740,24 @@ async function loadTodayChecklist() {
   completions = new Set(r.map((x) => x.taskId).filter((id) => valid.has(id)));
 }
 
-async function saveStreak() {
-  const done = validCompletionCount(),
-    total = getTodayTasks().length,
-    pct = total ? Math.round((done / total) * 100) : 0;
-  await DB.put('checklist', {
-    key: 'day_' + today(),
-    date: today(),
-    taskId: '__summary__',
-    pct,
-    done,
-    total,
-    ts: Date.now()
-  });
-  await renderStreak();
+let _streakTimer = null;
+function saveStreak() {
+  clearTimeout(_streakTimer);
+  _streakTimer = setTimeout(async () => {
+    const done = validCompletionCount(),
+      total = getTodayTasks().length,
+      pct = total ? Math.round((done / total) * 100) : 0;
+    await DB.put('checklist', {
+      key: 'day_' + today(),
+      date: today(),
+      taskId: '__summary__',
+      pct,
+      done,
+      total,
+      ts: Date.now()
+    });
+    await renderStreak();
+  }, 2000);
 }
 
 async function renderStreak() {
@@ -815,11 +824,17 @@ async function saveSpo2() {
     showSpo2Error('Enter a valid SpO2 value (70\u2013100)');
     return;
   }
+  const rawPulse = parseInt(document.getElementById('inp-pulse').value);
+  const pulse = rawPulse && rawPulse >= 40 && rawPulse <= 200 ? rawPulse : null;
+  if (document.getElementById('inp-pulse').value && !pulse) {
+    showSpo2Error('Enter a valid pulse (40\u2013200 bpm)');
+    return;
+  }
   await DB.add('spo2', {
     date: today(),
     time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
     spo2: v,
-    pulse: document.getElementById('inp-pulse').value || null,
+    pulse,
     feeling: document.getElementById('inp-feeling').value,
     notes: (document.getElementById('inp-notes').value || '').substring(0, 500),
     ts: Date.now()
@@ -828,14 +843,20 @@ async function saveSpo2() {
   ['inp-spo2', 'inp-pulse', 'inp-feeling', 'inp-notes'].forEach((id) => (document.getElementById(id).value = ''));
   document.getElementById('spo2-display').innerHTML = '&mdash;';
   document.getElementById('spo2-status').textContent = '';
-  renderSpo2History();
-  renderSpo2Avg();
-  renderSpo2Chart();
+  refreshSpo2Views();
 }
 
-async function renderSpo2Avg() {
-  const days = dateRange(7);
-  const recs = await DB.cachedGetRange('spo2', 'date', days[0], days[days.length - 1]);
+async function refreshSpo2Views() {
+  const days14 = dateRange(14);
+  const allRecs = await DB.cachedGetRange('spo2', 'date', days14[0], days14[days14.length - 1]);
+  const days7 = dateRange(7);
+  const recs7 = allRecs.filter((r) => r.date >= days7[0]);
+  renderSpo2Avg(recs7);
+  renderSpo2Chart(recs7);
+  renderSpo2History(allRecs);
+}
+
+function renderSpo2Avg(recs) {
   const valid = recs.filter((x) => x.spo2);
   const el = document.getElementById('spo2-avg-wrap');
   if (!valid.length) {
@@ -861,10 +882,9 @@ async function renderSpo2Avg() {
 }
 
 /* ── SpO2 Trend Chart ── */
-async function renderSpo2Chart() {
+function renderSpo2Chart(recs) {
   const wrap = document.getElementById('spo2-chart-wrap');
   const days = dateRange(7);
-  const recs = await DB.cachedGetRange('spo2', 'date', days[0], days[days.length - 1]);
   const byDate = {};
   for (const r of recs)
     if (r.spo2) {
@@ -993,9 +1013,7 @@ async function renderSpo2Chart() {
     '</div>';
 }
 
-async function renderSpo2History() {
-  const days = dateRange(14);
-  const recs = await DB.cachedGetRange('spo2', 'date', days[0], days[days.length - 1]);
+function renderSpo2History(recs) {
   const valid = recs.filter((x) => x.spo2).sort((a, b) => b.ts - a.ts);
   const el = document.getElementById('spo2-history');
   if (!valid.length) {
@@ -1078,18 +1096,23 @@ function medHtml(m) {
     '</div></div>'
   );
 }
+const _medToggleLock = new Set();
 async function toggleMed(id) {
-  if (navigator.vibrate) navigator.vibrate(15);
-  const dk = today(),
-    k = dk + '_' + id;
-  if (medCompletions.has(id)) {
-    medCompletions.delete(id);
-    await DB.deleteItem('meds', k);
-  } else {
-    medCompletions.add(id);
-    await DB.put('meds', { key: k, date: dk, medId: id, ts: Date.now() });
-  }
-  renderMeds();
+  if (_medToggleLock.has(id)) return;
+  _medToggleLock.add(id);
+  try {
+    if (navigator.vibrate) navigator.vibrate(15);
+    const dk = today(),
+      k = dk + '_' + id;
+    if (medCompletions.has(id)) {
+      medCompletions.delete(id);
+      await DB.deleteItem('meds', k);
+    } else {
+      medCompletions.add(id);
+      await DB.put('meds', { key: k, date: dk, medId: id, ts: Date.now() });
+    }
+    renderMeds();
+  } finally { _medToggleLock.delete(id); }
 }
 
 /* ── Evening Reflection (Mood + Mucus) ── */
@@ -1157,8 +1180,9 @@ function renderReflection() {
     esc(dailyLog?.notes || '') +
     '</textarea></div></div>';
   h +=
-    '<div style="padding:0 18px 18px"><button class="btn-primary" onclick="saveReflection()">Save reflection</button></div></div>';
+    '<div style="padding:0 18px 18px"><button class="btn-primary" id="save-reflection-btn">Save reflection</button></div></div>';
   wrap.innerHTML = h;
+  document.getElementById('save-reflection-btn').addEventListener('click', saveReflection);
   wrap.querySelectorAll('.mood-btn').forEach((b) =>
     b.addEventListener('click', () => {
       wrap.querySelectorAll('.mood-btn').forEach((x) => x.classList.remove('selected'));
@@ -1196,7 +1220,8 @@ async function saveReflection() {
 }
 
 async function renderReflectionHistory() {
-  const all = await DB.getAll('dailylog');
+  const days = dateRange(14);
+  const all = await DB.cachedGetRange('dailylog', 'date', days[0], days[days.length - 1]);
   const recent = all
     .filter((l) => l.date !== today() && l.mood)
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -1300,7 +1325,11 @@ let moodCalYear = new Date().getFullYear();
 async function renderMoodCalendar() {
   const el = document.getElementById('mood-calendar');
   if (!el) return;
-  const all = await DB.getAll('dailylog');
+  // Only fetch current displayed month
+  const rangeStart = moodCalYear + '-' + String(moodCalMonth + 1).padStart(2, '0') + '-01';
+  const daysInMo = new Date(moodCalYear, moodCalMonth + 1, 0).getDate();
+  const rangeEnd = moodCalYear + '-' + String(moodCalMonth + 1).padStart(2, '0') + '-' + String(daysInMo).padStart(2, '0');
+  const all = await DB.cachedGetRange('dailylog', 'date', rangeStart, rangeEnd);
   const moodMap = {};
   all.forEach((l) => {
     if (l.mood) {
@@ -1317,9 +1346,9 @@ async function renderMoodCalendar() {
   const monthName = new Date(yr, mo).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
   let h = '<div class="mcal-nav">';
-  h += '<button class="mcal-btn" onclick="moodCalPrev()">&lsaquo;</button>';
+  h += '<button class="mcal-btn" id="mcal-prev">&lsaquo;</button>';
   h += '<div class="mcal-title">' + esc(monthName) + '</div>';
-  h += '<button class="mcal-btn" onclick="moodCalNext()">&rsaquo;</button>';
+  h += '<button class="mcal-btn" id="mcal-next">&rsaquo;</button>';
   h += '</div>';
   h += '<div class="mcal-grid">';
   ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d) => {
@@ -1337,6 +1366,8 @@ async function renderMoodCalendar() {
   }
   h += '</div>';
   el.innerHTML = h;
+  document.getElementById('mcal-prev').addEventListener('click', moodCalPrev);
+  document.getElementById('mcal-next').addEventListener('click', moodCalNext);
 }
 
 function moodCalPrev() {
@@ -1445,23 +1476,6 @@ fbMessaging.onMessage(async (payload) => {
   }
 });
 
-/* ── Test Notification ── */
-
-async function testNotification() {
-  const status = document.getElementById('notif-status');
-  if (!isNotifEnabled()) {
-    status.textContent = 'Enable push reminders first, then test.';
-    return;
-  }
-  status.textContent = 'Sending test via Firebase...';
-  try {
-    const sendTest = firebase.functions().httpsCallable('sendTestNotification');
-    await sendTest();
-    status.textContent = 'Test notification sent via Firebase! Check your notifications.';
-  } catch (e) {
-    status.textContent = 'Test failed: ' + (e.message || e);
-  }
-}
 
 /* ── Notification Schedule ── */
 const NOTIF_SCHEDULE = [
@@ -1498,10 +1512,10 @@ function renderNotifSchedule() {
   const el = document.getElementById('notif-schedule');
   if (!el) return;
   el.innerHTML =
-    '<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Schedule (IST) \u2014 15 daily reminders</div>' +
+    '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Schedule (IST) \u2014 15 daily reminders</div>' +
     NOTIF_SCHEDULE.map(
       (s) =>
-        '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="min-width:68px;font-size:12px;font-weight:700;color:var(--pri)">' +
+        '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="min-width:68px;font-size:12px;font-weight:600;color:var(--pri)">' +
         esc(s.time) +
         '</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">' +
         esc(s.title) +
@@ -1560,6 +1574,28 @@ async function importData(input) {
     const text = await file.text();
     const data = JSON.parse(text);
     if (!Array.isArray(data.checklist) || !Array.isArray(data.spo2)) throw new Error('Invalid backup format');
+    // Validate records before importing
+    const isDateStr = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const isNum = (v) => typeof v === 'number' && isFinite(v);
+    const isStr = (v, max) => typeof v === 'string' && v.length <= (max || 1000);
+    const validChecklist = data.checklist.filter((r) => r && isDateStr(r.date) && isNum(r.ts));
+    const validSpo2 = data.spo2.filter(
+      (r) => r && isDateStr(r.date) && isNum(r.spo2) && r.spo2 >= 70 && r.spo2 <= 100 && isNum(r.ts)
+    );
+    const validMeds = Array.isArray(data.meds) ? data.meds.filter((r) => r && isDateStr(r.date) && isNum(r.ts)) : [];
+    const validDailylog = Array.isArray(data.dailylog)
+      ? data.dailylog.filter((r) => r && isDateStr(r.date) && isNum(r.ts))
+      : [];
+    // Validate customMeds JSON if present
+    let validCustomMeds = null;
+    if (data.customMeds) {
+      try {
+        const parsed = JSON.parse(data.customMeds);
+        if (Array.isArray(parsed) && parsed.every((m) => m && isStr(m.id, 100) && isStr(m.n, 200))) {
+          validCustomMeds = data.customMeds;
+        }
+      } catch (_) {}
+    }
     // Clear Firestore collections
     for (const col of ['checklist', 'spo2', 'meds', 'dailylog']) {
       const snap = await fsDb.collection(userCol(col)).get();
@@ -1569,14 +1605,33 @@ async function importData(input) {
         await batch.commit();
       }
     }
-    for (const item of data.checklist) await DB.put('checklist', item);
-    for (const item of data.spo2) {
+    // Batch writes for performance
+    for (let i = 0; i < validChecklist.length; i += 400) {
+      const batch = fsDb.batch();
+      validChecklist.slice(i, i + 400).forEach((item) => {
+        batch.set(fsDb.collection(userCol('checklist')).doc(item.key || (item.date + '_' + (item.taskId || ''))), item);
+      });
+      await batch.commit();
+    }
+    for (const item of validSpo2) {
       if (item.id) await fsDb.collection(userCol('spo2')).doc(String(item.id)).set(item);
       else await DB.add('spo2', item);
     }
-    if (data.meds) for (const item of data.meds) await DB.put('meds', item);
-    if (data.dailylog) for (const item of data.dailylog) await DB.put('dailylog', item);
-    if (data.customMeds) localStorage.setItem('lc_custom_meds', data.customMeds);
+    for (let i = 0; i < validMeds.length; i += 400) {
+      const batch = fsDb.batch();
+      validMeds.slice(i, i + 400).forEach((item) => {
+        batch.set(fsDb.collection(userCol('meds')).doc(item.key || (item.date + '_' + (item.medId || ''))), item);
+      });
+      await batch.commit();
+    }
+    for (let i = 0; i < validDailylog.length; i += 400) {
+      const batch = fsDb.batch();
+      validDailylog.slice(i, i + 400).forEach((item) => {
+        batch.set(fsDb.collection(userCol('dailylog')).doc(item.key || item.date), item);
+      });
+      await batch.commit();
+    }
+    if (validCustomMeds) localStorage.setItem('lc_custom_meds', validCustomMeds);
     location.reload();
   } catch (e) {
     showSpo2Error('Import failed: ' + e.message);
@@ -1611,13 +1666,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
   deferredPrompt = e;
   document.getElementById('install-banner').classList.remove('hidden');
 });
-document.getElementById('install-btn').onclick = async () => {
+document.getElementById('install-btn').addEventListener('click', async () => {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
   if (outcome === 'accepted') dismissInstall();
   deferredPrompt = null;
-};
+});
 function dismissInstall() {
   document.getElementById('install-banner').classList.add('hidden');
 }
@@ -1640,5 +1695,27 @@ async function startApp() {
   // Refresh FCM token silently
   refreshFCMToken();
 }
+/* ── Event listeners (no inline handlers) ── */
+document.getElementById('settings-btn').addEventListener('click', showSettings);
+document.getElementById('save-spo2-btn').addEventListener('click', saveSpo2);
+document.querySelectorAll('.nav-btn').forEach((btn) => {
+  btn.addEventListener('click', function () { switchTab(this.dataset.tab, this); });
+});
+document.getElementById('undo-btn').addEventListener('click', undoLastAction);
+document.getElementById('settings-modal').addEventListener('click', function (e) {
+  if (e.target === this) hideSettings();
+});
+document.getElementById('settings-close-btn').addEventListener('click', hideSettings);
+document.getElementById('export-btn').addEventListener('click', exportData);
+document.getElementById('import-btn').addEventListener('click', function () {
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', function () { importData(this); });
+document.getElementById('notif-toggle').addEventListener('click', toggleNotifications);
+document.getElementById('add-med-btn').addEventListener('click', addCustomMed);
+document.getElementById('signout-btn').addEventListener('click', signOut);
+document.getElementById('update-btn').addEventListener('click', function () { location.reload(); });
+document.getElementById('install-close-btn').addEventListener('click', dismissInstall);
+
 initSW();
 Auth.initAuth();

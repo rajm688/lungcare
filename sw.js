@@ -41,7 +41,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 /* ── Cache (network-first with offline fallback) ── */
-const CACHE = 'lungcare-v10';
+const CACHE = 'lungcare-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -75,14 +75,17 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Skip Firebase and Google API requests from caching
-  if (
-    e.request.url.includes('firebasejs') ||
-    e.request.url.includes('googleapis.com') ||
-    e.request.url.includes('firestore.googleapis.com')
-  ) {
+  const url = new URL(e.request.url);
+  // Only cache known app assets, skip external requests
+  const isAsset = ASSETS.some((a) => url.pathname.endsWith(a.replace('./', '/')) || url.pathname === a.replace('.', ''));
+  if (!isAsset && url.origin === self.location.origin) {
+    // Same-origin non-asset: network only with offline fallback
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match('./index.html'))
+    );
     return;
   }
+  if (!isAsset) return; // External requests — don't intercept
   e.respondWith(
     fetch(e.request)
       .then((res) => {

@@ -10,11 +10,14 @@
     <meta name="description" content="Personal health tracking application" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; frame-src 'self' https://*.firebaseapp.com;"
+      content="default-src 'self'; script-src 'self' https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; frame-src 'self' https://*.firebaseapp.com;"
     />
     <title>LungCare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
     <link rel="manifest" href="manifest.json" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
 
@@ -46,7 +49,7 @@
           <div class="header-date" id="header-date"></div>
         </div>
         <div class="streak-badge" id="streak-header">&#x1F525; 0</div>
-        <button class="settings-btn" onclick="showSettings()" aria-label="Settings">
+        <button class="settings-btn" id="settings-btn" aria-label="Settings">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3" />
             <path
@@ -115,7 +118,7 @@
             <div class="field" style="margin-bottom: 14px">
               <label>Notes (optional)</label><textarea id="inp-notes" placeholder="After walk, felt a bit tired..."></textarea>
             </div>
-            <button class="btn-primary" onclick="saveSpo2()">Save reading</button>
+            <button class="btn-primary" id="save-spo2-btn">Save reading</button>
           </div>
           <div class="card" style="margin: 16px; margin-top: 0">
             <div class="card-header"><span class="card-title">Recent readings</span></div>
@@ -173,25 +176,25 @@
         </div>
       </div>
       <nav class="bottom-nav">
-        <button class="nav-btn active" data-tab="today" onclick="switchTab('today', this)">
+        <button class="nav-btn active" data-tab="today">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg
           >Today
         </button>
-        <button class="nav-btn" data-tab="spo2" onclick="switchTab('spo2', this)">
+        <button class="nav-btn" data-tab="spo2">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg
           >SpO2
         </button>
-        <button class="nav-btn" data-tab="meds" onclick="switchTab('meds', this)">
+        <button class="nav-btn" data-tab="meds">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path
               d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"
             /></svg
           >Meds
         </button>
-        <button class="nav-btn" data-tab="progress" onclick="switchTab('progress', this)">
+        <button class="nav-btn" data-tab="progress">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
@@ -202,21 +205,21 @@
     </div>
 
     <div class="toast" id="undo-toast">
-      <span class="toast-text" id="undo-text">Task unchecked</span><button class="toast-btn" onclick="undoLastAction()">Undo</button>
+      <span class="toast-text" id="undo-text">Task unchecked</span><button class="toast-btn" id="undo-btn">Undo</button>
     </div>
 
-    <div class="modal-overlay" id="settings-modal" onclick="if (event.target === this) hideSettings();">
+    <div class="modal-overlay" id="settings-modal">
       <div class="modal-sheet">
         <div class="modal-header">
-          <span class="modal-title">Settings</span><button class="modal-close" onclick="hideSettings()">&#x2715;</button>
+          <span class="modal-title">Settings</span><button class="modal-close" id="settings-close-btn">&#x2715;</button>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Data Management</div>
           <div class="settings-btn-row">
-            <button class="btn-secondary" onclick="exportData()">&#x2B07; Export Data</button>
-            <button class="btn-secondary" onclick="document.getElementById('import-file').click()">&#x2B06; Import Data</button>
+            <button class="btn-secondary" id="export-btn">&#x2B07; Export Data</button>
+            <button class="btn-secondary" id="import-btn">&#x2B06; Import Data</button>
           </div>
-          <input type="file" id="import-file" accept=".json" style="display: none" onchange="importData(this)" />
+          <input type="file" id="import-file" accept=".json" style="display: none" />
           <div style="font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.5">
             Export saves all your data as JSON. Import restores from a backup file.
           </div>
@@ -228,10 +231,9 @@
               <div class="settings-row-label">Push reminders</div>
               <div class="settings-row-sub">Get notified for each task at the right time</div>
             </div>
-            <div class="toggle" id="notif-toggle" onclick="toggleNotifications()"></div>
+            <div class="toggle" id="notif-toggle"></div>
           </div>
           <div id="notif-status" style="font-size: 12px; color: var(--text-3); margin-top: 4px"></div>
-          <button class="btn-secondary" onclick="testNotification()" style="margin-top: 10px">&#x1F514; Send test notification</button>
           <div id="notif-schedule"></div>
         </div>
         <div class="settings-section">
@@ -244,13 +246,13 @@
               <option value="am">Morning</option>
               <option value="pm">Evening</option>
             </select>
-            <button class="btn-primary" style="margin-top: 0" onclick="addCustomMed()">Add medication</button>
+            <button class="btn-primary" id="add-med-btn" style="margin-top: 0">Add medication</button>
           </div>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Account</div>
           <div id="auth-user-email" style="font-size: 13px; color: var(--text-2); margin-bottom: 10px"></div>
-          <button class="btn-secondary btn-danger" onclick="signOut()">Sign Out</button>
+          <button class="btn-secondary btn-danger" id="signout-btn">Sign Out</button>
         </div>
         <div class="settings-section">
           <div style="font-size: 12px; color: var(--text-3); text-align: center">LungCare v6.0</div>
@@ -259,19 +261,18 @@
     </div>
 
     <div class="update-banner" id="update-banner">
-      <span>A new version is available</span><button class="update-btn" onclick="location.reload()">Update</button>
+      <span>A new version is available</span><button class="update-btn" id="update-btn">Update</button>
     </div>
     <div id="install-banner" class="hidden">
       <div class="install-text"><strong>Install LungCare</strong><br />Add to home screen for offline access</div>
       <button class="install-btn" id="install-btn">Install</button
-      ><button class="install-close" onclick="dismissInstall()">&#x2715;</button>
+      ><button class="install-close" id="install-close-btn">&#x2715;</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

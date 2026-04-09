@@ -98,7 +98,7 @@ body {
 .header-date {
   font-size: 11px;
   color: var(--text-3);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .streak-badge {
@@ -109,7 +109,7 @@ body {
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #b45309;
 }
 
@@ -123,7 +123,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .settings-btn:active {
@@ -254,7 +254,7 @@ body {
 
 .card-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -264,7 +264,7 @@ body {
   display: inline-flex;
   align-items: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 3px 8px;
   border-radius: 6px;
   letter-spacing: 0.3px;
@@ -380,19 +380,19 @@ body {
   font-size: 13px;
   opacity: 0.85;
   margin-top: 4px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .summary-text .tasks-done {
   font-size: 12px;
   opacity: 0.65;
   margin-top: 4px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .session-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -452,7 +452,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   background: var(--surface);
 }
 
@@ -512,7 +512,7 @@ body {
 
 .entry-title {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 16px;
 }
 
@@ -526,7 +526,7 @@ body {
 .field label {
   display: block;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -545,7 +545,7 @@ body {
   color: var(--text);
   background: var(--surface-2);
   outline: none;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .field input:focus,
@@ -663,11 +663,11 @@ body {
   border: none;
   border-radius: 14px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   margin-top: 6px;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
@@ -702,7 +702,7 @@ body {
 .log-date {
   font-size: 12px;
   color: var(--text-2);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .log-notes {
@@ -743,7 +743,7 @@ body {
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   background: var(--surface);
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .med-item:last-child {
@@ -781,7 +781,7 @@ body {
 
 .med-name {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -797,7 +797,7 @@ body {
 
 .med-status {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 5px 12px;
   border-radius: 10px;
   border: 1.5px solid var(--border);
@@ -815,7 +815,7 @@ body {
 .med-time-header {
   padding: 18px 18px 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--pri);
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -863,7 +863,7 @@ body {
   font-size: 13px;
   opacity: 0.55;
   margin-top: 8px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .streak-threshold {
@@ -888,7 +888,7 @@ body {
 
 .week-label {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
 }
 
@@ -957,7 +957,7 @@ body {
   font-size: 12px;
   color: var(--text-3);
   margin-top: 2px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .history-item {
@@ -977,7 +977,7 @@ body {
   font-size: 13px;
   color: var(--text-2);
   min-width: 80px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .history-bar-wrap {
@@ -995,7 +995,7 @@ body {
 
 .history-pct {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   min-width: 38px;
   text-align: right;
 }
@@ -1010,7 +1010,7 @@ body {
 
 .mcal-title {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -1018,7 +1018,7 @@ body {
   background: none;
   border: none;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--pri);
   cursor: pointer;
   padding: 4px 10px;
@@ -1041,7 +1041,7 @@ body {
 .mcal-head {
   text-align: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   padding: 4px 0 6px;
@@ -1095,7 +1095,7 @@ body {
 .reflection-header {
   padding: 16px 18px 14px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -1116,7 +1116,7 @@ body {
 
 .reflection-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1140,7 +1140,7 @@ body {
   border-radius: 14px;
   background: var(--surface);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
   font-family: inherit;
   -webkit-appearance: none;
 }
@@ -1173,7 +1173,7 @@ body {
 
 .mood-btn.selected .mood-label {
   color: var(--pri-d);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Mucus logging */
@@ -1258,7 +1258,7 @@ body {
   box-shadow: var(--shadow-lg);
   transform: translateY(100px);
   opacity: 0;
-  transition: all 0.25s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease;
   pointer-events: none;
 }
 
@@ -1271,7 +1271,7 @@ body {
 .toast-text {
   font-size: 14px;
   color: white;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .toast-btn {
@@ -1281,7 +1281,7 @@ body {
   padding: 7px 16px;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
@@ -1362,7 +1362,7 @@ body {
 
 .settings-section-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -1385,7 +1385,7 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   flex: 1;
   text-align: center;
 }
@@ -1427,7 +1427,7 @@ body {
   background: var(--border);
   border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   flex-shrink: 0;
 }
 
@@ -1531,7 +1531,7 @@ body {
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
@@ -1569,7 +1569,7 @@ body {
   padding: 9px 16px;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;

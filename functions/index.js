@@ -1,5 +1,4 @@
 const functionsV1 = require('firebase-functions/v1');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
@@ -83,7 +82,7 @@ exports.sendReminders = functionsV1.pubsub
     const reminder = SCHEDULE[key];
     if (!reminder) return null;
 
-    const snapshot = await db.collection('devices').get();
+    const snapshot = await db.collection('devices').where('uid', '!=', null).get();
     if (snapshot.empty) {
       console.log('No FCM tokens found — 0 devices registered');
       return null;
@@ -91,9 +90,11 @@ exports.sendReminders = functionsV1.pubsub
 
     console.log(`Found ${snapshot.size} registered device(s) for reminder ${key}`);
 
+    // Group by uid so each user only gets one notification even with multiple devices
     const sendPromises = snapshot.docs.map(async (doc) => {
-      const token = doc.data().token;
-      if (!token) { console.log(`Skipping ${doc.id}: no token`); return; }
+      const data = doc.data();
+      const token = data.token;
+      if (!token || !data.uid) { console.log(`Skipping ${doc.id}: no token or uid`); return; }
 
       try {
         await messaging.send({
@@ -126,53 +127,3 @@ exports.sendReminders = functionsV1.pubsub
     return null;
   });
 
-// Callable function to send a test push notification (Gen 2)
-exports.sendTestNotification = onCall(async (request) => {
-  const snapshot = await db.collection('devices').get();
-  if (snapshot.empty) {
-    throw new HttpsError('not-found', 'No FCM token found. Enable push reminders first.');
-  }
-
-  console.log(`Test notification: found ${snapshot.size} registered device(s)`);
-
-  let sent = 0;
-  const errors = [];
-
-  await Promise.all(snapshot.docs.map(async (doc) => {
-    const token = doc.data().token;
-    if (!token) return;
-
-    try {
-      await messaging.send({
-        token,
-        data: {
-          title: 'LungCare \u2014 Test',
-          body: 'Firebase notifications are working! You\u2019ll receive 15 daily reminders.',
-          tag: 'lungcare-test',
-          icon: 'https://lungcare-721be.web.app/icons/icon-192.svg'
-        },
-        webpush: {
-          headers: { Urgency: 'high', TTL: '300' }
-        }
-      });
-      sent++;
-    } catch (err) {
-      if (
-        err.code === 'messaging/registration-token-not-registered' ||
-        err.code === 'messaging/invalid-registration-token'
-      ) {
-        await doc.ref.delete();
-        console.log(`Deleted invalid token: ${doc.id}`);
-      } else {
-        errors.push(err.message);
-      }
-    }
-  }));
-
-  console.log(`Test notification done — sent: ${sent}, failed: ${errors.length}, cleaned: ${snapshot.size - sent - errors.length}`);
-
-  if (sent === 0 && errors.length > 0) {
-    throw new HttpsError('internal', 'Send failed: ' + errors.join('; '));
-  }
-  return { success: true, deviceCount: sent };
-});
