@@ -1592,15 +1592,23 @@ function applyThemeFromStorage() {
   function hsl(h, s, l) { return 'hsl(' + h + ',' + s + '%,' + l + '%)'; }
   function applyPalette(h, s) {
     const root = document.documentElement.style;
+    // M3 primary tones
     root.setProperty('--pri', hsl(h, Math.min(s, 70), 55));
-    root.setProperty('--pri-d', hsl(h, Math.min(s, 75), 45));
-    root.setProperty('--pri-l', hsl(h, Math.min(s, 80), 95));
-    root.setProperty('--pri-ll', hsl(h, Math.min(s, 60), 97));
-    root.setProperty('--info', hsl(h, Math.min(s, 65), 60));
-    root.setProperty('--info-bg', hsl(h, Math.min(s, 70), 95));
-    root.setProperty('--info-t', hsl(h, Math.min(s, 75), 35));
+    root.setProperty('--pri-d', hsl(h, Math.min(s, 75), 40));
+    root.setProperty('--pri-l', hsl(h, Math.min(s, 50), 94));
+    root.setProperty('--pri-ll', hsl(h, Math.min(s, 40), 97));
+    // M3 surface tints
+    root.setProperty('--bg', hsl(h, Math.min(s, 20), 98));
+    root.setProperty('--surface', hsl(h, Math.min(s, 15), 99));
+    root.setProperty('--surface-2', hsl(h, Math.min(s, 25), 96));
+    root.setProperty('--surface-3', hsl(h, Math.min(s, 20), 92));
+    root.setProperty('--border', hsl(h, Math.min(s, 15), 90));
+    // Info uses primary hue
+    root.setProperty('--info', hsl(h, Math.min(s, 65), 55));
+    root.setProperty('--info-bg', hsl(h, Math.min(s, 50), 94));
+    root.setProperty('--info-t', hsl(h, Math.min(s, 75), 30));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', hsl(h, Math.min(s, 70), 55));
+    if (meta) meta.setAttribute('content', hsl(h, Math.min(s, 25), 96));
   }
 
   const saved = localStorage.getItem('lc_theme_color');
@@ -1622,7 +1630,7 @@ function applyThemeFromStorage() {
     if (s > 5) applyPalette(h, s);
   } else {
     // Reset to CSS defaults
-    ['--pri', '--pri-d', '--pri-l', '--pri-ll', '--info', '--info-bg', '--info-t'].forEach(
+    ['--pri', '--pri-d', '--pri-l', '--pri-ll', '--bg', '--surface', '--surface-2', '--surface-3', '--border', '--info', '--info-bg', '--info-t'].forEach(
       (v) => document.documentElement.style.removeProperty(v)
     );
   }

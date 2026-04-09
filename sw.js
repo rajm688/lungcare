@@ -41,7 +41,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 /* ── Cache (network-first with offline fallback) ── */
-const CACHE = 'lungcare-v12';
+const CACHE = 'lungcare-v13';
 const ASSETS = [
   './',
   './index.html',
