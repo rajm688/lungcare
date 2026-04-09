@@ -1526,10 +1526,113 @@ function renderNotifSchedule() {
 }
 
 /* ── Settings ── */
+/* ── Theme Swatches ── */
+const THEME_COLORS = [
+  { id: 'auto', label: 'Auto', hex: null },
+  { id: 'indigo', label: 'Indigo', hex: '#6366f1' },
+  { id: 'blue', label: 'Blue', hex: '#3b82f6' },
+  { id: 'teal', label: 'Teal', hex: '#14b8a6' },
+  { id: 'green', label: 'Green', hex: '#22c55e' },
+  { id: 'orange', label: 'Orange', hex: '#f97316' },
+  { id: 'rose', label: 'Rose', hex: '#f43f5e' },
+  { id: 'purple', label: 'Purple', hex: '#a855f7' },
+  { id: 'amber', label: 'Amber', hex: '#f59e0b' }
+];
+function renderThemeSwatches() {
+  const wrap = document.getElementById('theme-swatches');
+  if (!wrap) return;
+  const saved = localStorage.getItem('lc_theme_color');
+  const savedId = localStorage.getItem('lc_theme_id') || (saved ? null : 'auto');
+  wrap.innerHTML = THEME_COLORS.map((t) => {
+    const active = t.id === savedId ? ' active' : '';
+    const cls = t.id === 'auto' ? ' auto-swatch' : '';
+    const bg = t.hex ? 'background:' + t.hex : '';
+    return '<div class="theme-swatch' + cls + active + '" data-theme="' + t.id + '" data-hex="' + (t.hex || '') + '" style="' + bg + '" title="' + t.label + '"></div>';
+  }).join('');
+  wrap.querySelectorAll('.theme-swatch').forEach((sw) => {
+    sw.addEventListener('click', () => {
+      const id = sw.dataset.theme;
+      const hex = sw.dataset.hex;
+      if (id === 'auto') {
+        localStorage.removeItem('lc_theme_color');
+        localStorage.setItem('lc_theme_id', 'auto');
+      } else {
+        localStorage.setItem('lc_theme_color', hex);
+        localStorage.setItem('lc_theme_id', id);
+      }
+      // Re-apply theme
+      applyThemeFromStorage();
+      wrap.querySelectorAll('.theme-swatch').forEach((s) => s.classList.remove('active'));
+      sw.classList.add('active');
+    });
+  });
+}
+function applyThemeFromStorage() {
+  function hexToHsl(hex) {
+    let r = parseInt(hex.slice(1, 3), 16) / 255;
+    let g = parseInt(hex.slice(3, 5), 16) / 255;
+    let b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+  }
+  function rgbToHex(str) {
+    const m = str.match(/(\d+)/g);
+    if (!m || m.length < 3) return null;
+    return '#' + m.slice(0, 3).map((v) => parseInt(v).toString(16).padStart(2, '0')).join('');
+  }
+  function hsl(h, s, l) { return 'hsl(' + h + ',' + s + '%,' + l + '%)'; }
+  function applyPalette(h, s) {
+    const root = document.documentElement.style;
+    root.setProperty('--pri', hsl(h, Math.min(s, 70), 55));
+    root.setProperty('--pri-d', hsl(h, Math.min(s, 75), 45));
+    root.setProperty('--pri-l', hsl(h, Math.min(s, 80), 95));
+    root.setProperty('--pri-ll', hsl(h, Math.min(s, 60), 97));
+    root.setProperty('--info', hsl(h, Math.min(s, 65), 60));
+    root.setProperty('--info-bg', hsl(h, Math.min(s, 70), 95));
+    root.setProperty('--info-t', hsl(h, Math.min(s, 75), 35));
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', hsl(h, Math.min(s, 70), 55));
+  }
+
+  const saved = localStorage.getItem('lc_theme_color');
+  let hex = saved;
+  if (!hex) {
+    // Auto-detect system accent
+    try {
+      const probe = document.createElement('div');
+      probe.style.color = 'AccentColor';
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      document.documentElement.appendChild(probe);
+      hex = rgbToHex(getComputedStyle(probe).color);
+      document.documentElement.removeChild(probe);
+    } catch (_) {}
+  }
+  if (hex && hex !== '#000000' && hex !== '#ffffff') {
+    const [h, s] = hexToHsl(hex);
+    if (s > 5) applyPalette(h, s);
+  } else {
+    // Reset to CSS defaults
+    ['--pri', '--pri-d', '--pri-l', '--pri-ll', '--info', '--info-bg', '--info-t'].forEach(
+      (v) => document.documentElement.style.removeProperty(v)
+    );
+  }
+}
+
 function showSettings() {
   renderMedConfig();
   updateNotifToggle();
   renderNotifSchedule();
+  renderThemeSwatches();
   const user = fbAuth.currentUser;
   const emailEl = document.getElementById('auth-user-email');
   if (emailEl && user) emailEl.textContent = user.email;
@@ -1717,5 +1820,6 @@ document.getElementById('signout-btn').addEventListener('click', signOut);
 document.getElementById('update-btn').addEventListener('click', function () { location.reload(); });
 document.getElementById('install-close-btn').addEventListener('click', dismissInstall);
 
+applyThemeFromStorage();
 initSW();
 Auth.initAuth();

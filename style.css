@@ -1502,6 +1502,35 @@ body {
   color: var(--text-3);
 }
 
+.theme-swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.theme-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.theme-swatch:active {
+  transform: scale(0.9);
+}
+
+.theme-swatch.active {
+  border-color: var(--text);
+}
+
+.theme-swatch.auto-swatch {
+  background: conic-gradient(#6366f1, #ec4899, #f59e0b, #10b981, #3b82f6, #6366f1);
+}
+
 .update-banner {
   position: fixed;
   top: 0;
