@@ -1235,7 +1235,7 @@ function renderSpo2Chart(recs) {
       (pL - 5) +
       '" y="' +
       (ly + 3) +
-      '" text-anchor="end" font-size="8" font-family="Figtree,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
+      '" text-anchor="end" font-size="8" font-family="Inter,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
       v +
       '</text>';
   }
@@ -1280,7 +1280,7 @@ function renderSpo2Chart(recs) {
       cx +
       '" y="' +
       (cy - 9) +
-      '" text-anchor="middle" font-size="9" font-family="Figtree,sans-serif" fill="' + cc.text + '" font-weight="800">' +
+      '" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="' + cc.text + '" font-weight="800">' +
       p.avg +
       '</text>';
   });
@@ -1290,7 +1290,7 @@ function renderSpo2Chart(recs) {
       fx(i) +
       '" y="' +
       (H - 6) +
-      '" text-anchor="middle" font-size="9" font-family="Figtree,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
+      '" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
       p.label +
       '</text>';
   });

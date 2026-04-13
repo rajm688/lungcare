@@ -32,7 +32,7 @@
   --info: #2D6A4F;
   --info-bg: #D8F3DC;
   --info-t: #1B4332;
-  --nav-h: 76px;
+  --nav-h: 80px;
   --header-h: 60px;
   --border-subtle: rgba(0, 0, 0, 0.04);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -43,15 +43,7 @@
   --radius: 14px;
   --radius-lg: 24px;
   --radius-full: 100px;
-  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
-}
-
-/* Serif display for key numbers & titles */
-.streak-num, .spo2-value-display, .spo2-avg-val,
-.stat-val, .ring-center, .summary-text .pct,
-.auth-title, .header-title, .modal-title, .entry-title,
-.log-spo2 {
-  font-family: 'Young Serif', Georgia, 'Times New Roman', serif;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
 
 /* ── 2. Reset ── */
@@ -102,9 +94,9 @@ html, body {
 .header-info { flex: 1; }
 
 .header-title {
-  font-size: 18px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
@@ -170,22 +162,14 @@ html, body {
 .tab-panel.slide-right { animation: slideInRight 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
 .tab-panel.slide-left { animation: slideInLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
 
-/* ── 5. Bottom Nav — Floating Glass Pill ── */
+/* ── 5. Bottom Nav ── */
 .bottom-nav {
-  position: fixed;
-  bottom: calc(12px + var(--safe-b));
-  left: 16px;
-  right: 16px;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.94);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(26, 24, 20, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5);
+  height: calc(var(--nav-h) + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  background: var(--surface-2);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  z-index: 50;
+  flex-shrink: 0;
 }
 
 .nav-btn {
@@ -193,17 +177,17 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   border: none;
   background: none;
   cursor: pointer;
   color: var(--text-3);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   font-family: inherit;
   letter-spacing: 0.03em;
-  padding: 8px 4px;
-  transition: color 0.2s;
+  padding: 12px 4px 8px;
+  transition: color 0.15s;
   position: relative;
 }
 .nav-btn.active { color: var(--pri-d); }
@@ -211,17 +195,17 @@ html, body {
 .nav-btn.active::before {
   content: '';
   position: absolute;
-  top: 10px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  width: 48px;
+  width: 56px;
   height: 28px;
   background: var(--pri-l);
   border-radius: var(--radius-full);
   z-index: -1;
 }
 
-.nav-btn svg { width: 20px; height: 20px; z-index: 1; }
+.nav-btn svg { width: 22px; height: 22px; z-index: 1; }
 
 /* ── 6. Cards & Chips ── */
 .card {
@@ -326,15 +310,14 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .summary-text { position: relative; z-index: 1; }
 .summary-text .pct {
-  font-size: 32px;
-  font-weight: 400;
+  font-size: 28px;
+  font-weight: 800;
   line-height: 1;
 }
 .summary-text .sub {
@@ -623,8 +606,8 @@ html, body {
   box-shadow: var(--shadow);
 }
 .entry-title {
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 600;
   margin-bottom: 16px;
 }
 .entry-row {
@@ -665,8 +648,8 @@ html, body {
 
 .spo2-value-display {
   text-align: center;
-  font-size: 56px;
-  font-weight: 400;
+  font-size: 52px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
   transition: color 0.3s;
@@ -692,7 +675,7 @@ html, body {
   align-items: center;
   gap: 16px;
 }
-.spo2-avg-val { font-size: 36px; font-weight: 400; letter-spacing: -0.02em; }
+.spo2-avg-val { font-size: 34px; font-weight: 800; }
 .spo2-avg-info { flex: 1; }
 .spo2-avg-label { font-size: 12px; color: var(--text-3); font-weight: 600; }
 .spo2-avg-range { font-size: 12px; color: var(--text-2); margin-top: 2px; }
@@ -768,7 +751,7 @@ html, body {
   background: var(--surface);
 }
 .log-item:last-child { border-bottom: none; }
-.log-spo2 { font-size: 22px; font-weight: 400; min-width: 52px; }
+.log-spo2 { font-size: 22px; font-weight: 800; min-width: 52px; }
 .log-meta { flex: 1; }
 .log-date { font-size: 12px; color: var(--text-2); font-weight: 600; }
 .log-notes { font-size: 12px; color: var(--text-3); margin-top: 2px; }
@@ -868,8 +851,8 @@ html, body {
 }
 
 .streak-num {
-  font-size: 72px;
-  font-weight: 400;
+  font-size: 64px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -914,7 +897,7 @@ html, body {
   padding: 18px;
   box-shadow: var(--shadow);
 }
-.stat-val { font-size: 30px; font-weight: 400; color: var(--pri); letter-spacing: -0.02em; }
+.stat-val { font-size: 28px; font-weight: 800; color: var(--pri); }
 .stat-lbl { font-size: 12px; color: var(--text-3); margin-top: 3px; font-weight: 500; }
 
 .history-item {
@@ -1162,7 +1145,7 @@ html, body {
   background: var(--bg);
   z-index: 1;
 }
-.modal-title { font-size: 22px; font-weight: 400; letter-spacing: -0.01em; }
+.modal-title { font-size: 22px; font-weight: 600; }
 .modal-close {
   background: transparent;
   border: none;
@@ -1347,8 +1330,8 @@ html, body {
 
 .auth-logo { width: 42px; height: 42px; }
 .auth-title {
-  font-size: 28px;
-  font-weight: 400;
+  font-size: 24px;
+  font-weight: 800;
   margin-bottom: 4px;
   color: var(--text);
   letter-spacing: 0.01em;
