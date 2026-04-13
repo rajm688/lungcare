@@ -8,6 +8,15 @@ function esc(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+function readJSON(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return typeof fallback === 'function' ? fallback() : fallback;
+  try { return JSON.parse(raw); } catch (_) { return typeof fallback === 'function' ? fallback() : fallback; }
+}
+const DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+function chipHtml(type) {
+  return '<span class="chip ' + (CHIP_CLASS[type] || 'chip-mon') + '">' + (CHIP_LABEL[type] || '') + '</span>';
+}
 
 /* ── Firebase Init ── */
 const FIREBASE_CONFIG = {
@@ -331,24 +340,29 @@ const CHIP_LABEL = {
 };
 
 /* ── Task Configuration (add/edit/delete/hide/reorder) ── */
+const DEFAULT_TASK_CONFIG = { customTasks: [], edits: {}, hidden: [], order: {}, deleted: [] };
+let _cachedTaskConfig = null;
 function getTaskConfig() {
-  const c = localStorage.getItem('lc_task_config');
-  if (!c) return { customTasks: [], edits: {}, hidden: [], order: {}, deleted: [] };
-  try {
-    const parsed = JSON.parse(c);
-    return {
-      customTasks: parsed.customTasks || [],
-      edits: parsed.edits || {},
-      hidden: parsed.hidden || [],
-      order: parsed.order || {},
-      deleted: parsed.deleted || []
-    };
-  } catch (_) { return { customTasks: [], edits: {}, hidden: [], order: {}, deleted: [] }; }
+  if (_cachedTaskConfig) return _cachedTaskConfig;
+  const parsed = readJSON('lc_task_config', null);
+  if (!parsed) { _cachedTaskConfig = { ...DEFAULT_TASK_CONFIG, edits: {} }; return _cachedTaskConfig; }
+  _cachedTaskConfig = {
+    customTasks: parsed.customTasks || [],
+    edits: parsed.edits || {},
+    hidden: parsed.hidden || [],
+    order: parsed.order || {},
+    deleted: parsed.deleted || []
+  };
+  return _cachedTaskConfig;
 }
 function saveTaskConfig(config) {
   localStorage.setItem('lc_task_config', JSON.stringify(config));
+  _cachedTaskConfig = null;
+  _cachedEffectiveTasks = null;
 }
+let _cachedEffectiveTasks = null;
 function getEffectiveTasks() {
+  if (_cachedEffectiveTasks) return _cachedEffectiveTasks;
   const config = getTaskConfig();
   const deleted = config.deleted;
   let tasks = DEFAULT_TASKS
@@ -381,6 +395,7 @@ function getEffectiveTasks() {
     });
     tasks = ordered;
   }
+  _cachedEffectiveTasks = tasks;
   return tasks;
 }
 
@@ -406,9 +421,7 @@ const MUCUS_CONSISTENCY = ['Thin / Watery', 'Normal', 'Thick / Sticky', 'Very Th
 
 /* ── Configurable medications ── */
 function getMeds() {
-  const c = localStorage.getItem('lc_custom_meds');
-  if (!c) return DEFAULT_MEDS;
-  try { return JSON.parse(c); } catch (_) { return DEFAULT_MEDS; }
+  return readJSON('lc_custom_meds', DEFAULT_MEDS);
 }
 function saveMedsConfig(meds) {
   localStorage.setItem('lc_custom_meds', JSON.stringify(meds));
@@ -624,7 +637,15 @@ const DB = {
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) =>
   new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' });
-const dayLabel = (d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][new Date(d + 'T00:00:00').getDay()];
+const dayLabel = (d) => DAY_ABBR[new Date(d + 'T00:00:00').getDay()];
+function _chartColors() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    pri: s.getPropertyValue('--pri').trim() || '#40916C',
+    text: s.getPropertyValue('--text').trim() || '#1A1814',
+    text3: s.getPropertyValue('--text-3').trim() || '#78706A'
+  };
+}
 const dateRange = (n) => {
   const a = [];
   for (let i = n - 1; i >= 0; i--) {
@@ -638,14 +659,14 @@ let completions = new Set(),
   medCompletions = new Set();
 function getTodayTasks() {
   const dow = new Date().getDay();
-  const config = getTaskConfig();
-  return getEffectiveTasks().filter(t => !config.hidden.includes(t.id) && (!t.days || t.days.includes(dow)));
+  const hidden = getTaskConfig().hidden;
+  return getEffectiveTasks().filter(t => !hidden.includes(t.id) && (!t.days || t.days.includes(dow)));
 }
 function getAllTasksForDisplay() {
   const dow = new Date().getDay();
-  const config = getTaskConfig();
+  const hidden = getTaskConfig().hidden;
   return getEffectiveTasks()
-    .filter(t => !config.hidden.includes(t.id))
+    .filter(t => !hidden.includes(t.id))
     .map(t => ({ ...t, skipped: t.days && !t.days.includes(dow) }));
 }
 function validCompletionCount() {
@@ -716,13 +737,13 @@ function buildChecklist() {
         it.className = 'task-item edit-mode' + (hidden ? ' task-hidden' : '');
         it.dataset.id = task.id;
         const daysHtml = task.days
-          ? '<span class="chip chip-days">' + task.days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(', ') + '</span>'
+          ? '<span class="chip chip-days">' + task.days.map(d => DAY_ABBR[d]).join(', ') + '</span>'
           : '';
         it.innerHTML =
           '<div class="drag-handle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>' +
           '<div class="task-content"><div class="task-name">' + esc(task.n) + '</div>' +
           '<div class="task-detail">' + esc(task.d) + '</div>' +
-          '<span class="chip ' + (CHIP_CLASS[task.t] || 'chip-mon') + '">' + (CHIP_LABEL[task.t] || '') + '</span>' +
+          chipHtml(task.t) +
           daysHtml +
           (hidden ? '<span class="chip chip-hidden">Hidden</span>' : '') +
           '</div>' +
@@ -746,8 +767,7 @@ function buildChecklist() {
         it.innerHTML =
           '<div class="task-check"></div><div class="task-content"><div class="task-name">' +
           esc(task.n) + '</div><div class="task-detail">' + esc(task.d) +
-          '</div><span class="chip ' + (CHIP_CLASS[task.t] || 'chip-mon') + '">' +
-          (CHIP_LABEL[task.t] || '') + '</span></div>';
+          '</div>' + chipHtml(task.t) + '</div>';
         it.addEventListener('click', () => toggleTask(task.id, it));
       }
       c.appendChild(it);
@@ -830,8 +850,11 @@ async function toggleTask(id, el) {
 }
 
 function updateProgress() {
-  const done = validCompletionCount(),
-    total = getTodayTasks().length,
+  const todayTasks = getTodayTasks();
+  const valid = new Set(todayTasks.map(t => t.id));
+  let done = 0;
+  for (const id of completions) if (valid.has(id)) done++;
+  const total = todayTasks.length,
     pct = total ? Math.round((done / total) * 100) : 0;
   const circ = 2 * Math.PI * 30;
   document.getElementById('ring-fill').style.strokeDashoffset = circ * (1 - pct / 100);
@@ -1019,6 +1042,8 @@ function confirmDeleteTask(taskId) {
 function resetTasksToDefault() {
   if (!confirm('Reset all tasks to default? Custom tasks will be removed and all edits undone.')) return;
   localStorage.removeItem('lc_task_config');
+  _cachedTaskConfig = null;
+  _cachedEffectiveTasks = null;
   buildChecklist();
   updateProgress();
 }
@@ -1146,6 +1171,7 @@ function renderSpo2Avg(recs) {
 /* ── SpO2 Trend Chart ── */
 function renderSpo2Chart(recs) {
   const wrap = document.getElementById('spo2-chart-wrap');
+  const cc = _chartColors();
   const days = dateRange(7);
   const byDate = {};
   for (const r of recs)
@@ -1203,13 +1229,13 @@ function renderSpo2Chart(recs) {
       (W - pR) +
       '" y2="' +
       ly +
-      '" stroke="#E2E8F0" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      '" stroke="rgba(0,0,0,0.06)" stroke-width="0.5" stroke-dasharray="3,3"/>';
     svg +=
       '<text x="' +
       (pL - 5) +
       '" y="' +
       (ly + 3) +
-      '" text-anchor="end" font-size="8" font-family="Inter,sans-serif" fill="#94A3B8" font-weight="700">' +
+      '" text-anchor="end" font-size="8" font-family="Figtree,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
       v +
       '</text>';
   }
@@ -1238,12 +1264,12 @@ function renderSpo2Chart(recs) {
   areaD += ' L' + fx(points.length - 1).toFixed(1) + ',' + (pT + cH) + ' L' + fx(0).toFixed(1) + ',' + (pT + cH) + ' Z';
   svg += '<path d="' + areaD + '" fill="url(#chartGrad)" opacity=".3"/>';
   svg +=
-    '<defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#6366F1" stop-opacity="0"/></linearGradient></defs>';
+    '<defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + cc.pri + '"/><stop offset="100%" stop-color="' + cc.pri + '" stop-opacity="0"/></linearGradient></defs>';
   let pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + fx(i).toFixed(1) + ',' + fy(p.avg).toFixed(1)).join(' ');
   svg +=
     '<path d="' +
     pathD +
-    '" fill="none" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    '" fill="none" stroke="' + cc.pri + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
   points.forEach((p, i) => {
     const cx = fx(i),
       cy = fy(p.avg);
@@ -1254,7 +1280,7 @@ function renderSpo2Chart(recs) {
       cx +
       '" y="' +
       (cy - 9) +
-      '" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#1E293B" font-weight="800">' +
+      '" text-anchor="middle" font-size="9" font-family="Figtree,sans-serif" fill="' + cc.text + '" font-weight="800">' +
       p.avg +
       '</text>';
   });
@@ -1264,7 +1290,7 @@ function renderSpo2Chart(recs) {
       fx(i) +
       '" y="' +
       (H - 6) +
-      '" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#94A3B8" font-weight="700">' +
+      '" text-anchor="middle" font-size="9" font-family="Figtree,sans-serif" fill="' + cc.text3 + '" font-weight="700">' +
       p.label +
       '</text>';
   });
@@ -1771,9 +1797,7 @@ function roundTo15(t24) {
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
 function getNotifSchedule() {
-  const c = localStorage.getItem('lc_notif_schedule');
-  if (c) { try { return JSON.parse(c); } catch (_) {} }
-  return DEFAULT_NOTIF_SCHEDULE.map(s => ({ ...s }));
+  return readJSON('lc_notif_schedule', () => DEFAULT_NOTIF_SCHEDULE.map(s => ({ ...s })));
 }
 function saveNotifSchedule(schedule) {
   localStorage.setItem('lc_notif_schedule', JSON.stringify(schedule));
@@ -1836,7 +1860,7 @@ function renderNotifSchedule() {
 /* ── Theme Swatches ── */
 const THEME_COLORS = [
   { id: 'auto', label: 'Auto', hex: null },
-  { id: 'indigo', label: 'Indigo', hex: '#6366f1' },
+  { id: 'sage', label: 'Sage', hex: '#40916C' },
   { id: 'blue', label: 'Blue', hex: '#3b82f6' },
   { id: 'teal', label: 'Teal', hex: '#14b8a6' },
   { id: 'green', label: 'Green', hex: '#22c55e' },
@@ -1849,7 +1873,9 @@ function renderThemeSwatches() {
   const wrap = document.getElementById('theme-swatches');
   if (!wrap) return;
   const saved = localStorage.getItem('lc_theme_color');
-  const savedId = localStorage.getItem('lc_theme_id') || (saved ? null : 'auto');
+  let savedId = localStorage.getItem('lc_theme_id') || (saved ? null : 'auto');
+  // Migrate legacy theme IDs
+  if (savedId && !THEME_COLORS.some(t => t.id === savedId)) savedId = 'auto';
   wrap.innerHTML = THEME_COLORS.map((t) => {
     const active = t.id === savedId ? ' active' : '';
     const cls = t.id === 'auto' ? ' auto-swatch' : '';
@@ -1902,6 +1928,7 @@ function applyThemeFromStorage() {
     // M3 primary tones
     root.setProperty('--pri', hsl(h, Math.min(s, 70), 55));
     root.setProperty('--pri-d', hsl(h, Math.min(s, 75), 40));
+    root.setProperty('--pri-dd', hsl(h, Math.min(s, 80), 20));
     root.setProperty('--pri-l', hsl(h, Math.min(s, 50), 94));
     root.setProperty('--pri-ll', hsl(h, Math.min(s, 40), 97));
     // M3 surface tints
@@ -1937,7 +1964,7 @@ function applyThemeFromStorage() {
     if (s > 5) applyPalette(h, s);
   } else {
     // Reset to CSS defaults
-    ['--pri', '--pri-d', '--pri-l', '--pri-ll', '--bg', '--surface', '--surface-2', '--surface-3', '--border', '--info', '--info-bg', '--info-t'].forEach(
+    ['--pri', '--pri-d', '--pri-dd', '--pri-l', '--pri-ll', '--bg', '--surface', '--surface-2', '--surface-3', '--border', '--info', '--info-bg', '--info-t'].forEach(
       (v) => document.documentElement.style.removeProperty(v)
     );
   }
@@ -1964,13 +1991,13 @@ async function signOut() {
 
 /* ── Export / Import ── */
 async function exportData() {
+  const [checklist, spo2, meds, dailylog] = await Promise.all([
+    DB.getAll('checklist'), DB.getAll('spo2'), DB.getAll('meds'), DB.getAll('dailylog')
+  ]);
   const data = {
     version: 3,
     exported: new Date().toISOString(),
-    checklist: await DB.getAll('checklist'),
-    spo2: await DB.getAll('spo2'),
-    meds: await DB.getAll('meds'),
-    dailylog: await DB.getAll('dailylog'),
+    checklist, spo2, meds, dailylog,
     customMeds: localStorage.getItem('lc_custom_meds') || null,
     taskConfig: localStorage.getItem('lc_task_config') || null,
     notifSchedule: localStorage.getItem('lc_notif_schedule') || null
@@ -2033,9 +2060,13 @@ async function importData(input) {
       });
       await batch.commit();
     }
-    for (const item of validSpo2) {
-      if (item.id) await fsDb.collection(userCol('spo2')).doc(String(item.id)).set(item);
-      else await DB.add('spo2', item);
+    for (let i = 0; i < validSpo2.length; i += 400) {
+      const batch = fsDb.batch();
+      validSpo2.slice(i, i + 400).forEach((item) => {
+        const ref = item.id ? fsDb.collection(userCol('spo2')).doc(String(item.id)) : fsDb.collection(userCol('spo2')).doc();
+        batch.set(ref, item);
+      });
+      await batch.commit();
     }
     for (let i = 0; i < validMeds.length; i += 400) {
       const batch = fsDb.batch();
@@ -2114,9 +2145,7 @@ window.addEventListener('appinstalled', dismissInstall);
 async function startApp() {
   await DB.open();
   updateHeader();
-  await loadTodayChecklist();
-  await loadTodayMeds();
-  await loadDailyLog();
+  await Promise.all([loadTodayChecklist(), loadTodayMeds(), loadDailyLog()]);
   buildChecklist();
   updateProgress();
   await renderStreak();

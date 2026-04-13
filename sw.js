@@ -41,18 +41,19 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 /* ── Cache (network-first with offline fallback) ── */
-const CACHE = 'lungcare-v14';
+const CACHE = 'lungcare-v16';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './sortable.min.js',
   './manifest.json',
   './firebase-messaging-sw.js',
   './icons/icon-192.svg',
   './icons/icon-512.svg',
   './icons/logo-white.svg',
-  './icons/logo-indigo.svg'
+  './icons/logo-sage.svg'
 ];
 
 self.addEventListener('install', (e) => {
