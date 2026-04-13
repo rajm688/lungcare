@@ -111,7 +111,7 @@ function userCol(col) {
 }
 
 /* ── Constants ── */
-const TASKS = [
+const DEFAULT_TASKS = [
   {
     id: 'spo2-wake',
     s: 'morning',
@@ -329,6 +329,61 @@ const CHIP_LABEL = {
   slp: 'Sleep',
   nasal: 'Nasal'
 };
+
+/* ── Task Configuration (add/edit/delete/hide/reorder) ── */
+function getTaskConfig() {
+  const c = localStorage.getItem('lc_task_config');
+  if (!c) return { customTasks: [], edits: {}, hidden: [], order: {}, deleted: [] };
+  try {
+    const parsed = JSON.parse(c);
+    return {
+      customTasks: parsed.customTasks || [],
+      edits: parsed.edits || {},
+      hidden: parsed.hidden || [],
+      order: parsed.order || {},
+      deleted: parsed.deleted || []
+    };
+  } catch (_) { return { customTasks: [], edits: {}, hidden: [], order: {}, deleted: [] }; }
+}
+function saveTaskConfig(config) {
+  localStorage.setItem('lc_task_config', JSON.stringify(config));
+}
+function getEffectiveTasks() {
+  const config = getTaskConfig();
+  const deleted = config.deleted;
+  let tasks = DEFAULT_TASKS
+    .filter(t => !deleted.includes(t.id))
+    .map(t => {
+      const edit = config.edits[t.id];
+      if (!edit) return t;
+      const merged = { id: t.id, s: edit.s, n: edit.n, d: edit.d, t: edit.t, _edited: true };
+      if (edit.days) merged.days = edit.days;
+      return merged;
+    });
+  tasks = tasks.concat(config.customTasks.map(t => ({ ...t, _custom: true })));
+  if (Object.keys(config.order).length) {
+    const grouped = {};
+    SESSION_ORDER.forEach(s => (grouped[s] = []));
+    tasks.forEach(t => { if (grouped[t.s]) grouped[t.s].push(t); });
+    const ordered = [];
+    SESSION_ORDER.forEach(s => {
+      const orderArr = config.order[s];
+      if (orderArr && orderArr.length) {
+        const orderMap = {};
+        orderArr.forEach((id, i) => (orderMap[id] = i));
+        grouped[s].sort((a, b) => {
+          const ai = orderMap[a.id] !== undefined ? orderMap[a.id] : 999;
+          const bi = orderMap[b.id] !== undefined ? orderMap[b.id] : 999;
+          return ai - bi;
+        });
+      }
+      ordered.push(...grouped[s]);
+    });
+    tasks = ordered;
+  }
+  return tasks;
+}
+
 const MOODS = [
   { id: 'great', emoji: '\uD83D\uDE04', label: 'Great' },
   { id: 'good', emoji: '\uD83D\uDE0A', label: 'Good' },
@@ -583,11 +638,15 @@ let completions = new Set(),
   medCompletions = new Set();
 function getTodayTasks() {
   const dow = new Date().getDay();
-  return TASKS.filter((t) => !t.days || t.days.includes(dow));
+  const config = getTaskConfig();
+  return getEffectiveTasks().filter(t => !config.hidden.includes(t.id) && (!t.days || t.days.includes(dow)));
 }
 function getAllTasksForDisplay() {
   const dow = new Date().getDay();
-  return TASKS.map((t) => ({ ...t, skipped: t.days && !t.days.includes(dow) }));
+  const config = getTaskConfig();
+  return getEffectiveTasks()
+    .filter(t => !config.hidden.includes(t.id))
+    .map(t => ({ ...t, skipped: t.days && !t.days.includes(dow) }));
 }
 function validCompletionCount() {
   const v = new Set(getTodayTasks().map((t) => t.id));
@@ -617,49 +676,106 @@ function switchTab(tab, btn) {
 }
 
 /* ── Checklist ── */
+let editMode = false;
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-routine-btn');
+  btn.innerHTML = editMode
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  btn.classList.toggle('active', editMode);
+  document.getElementById('edit-mode-banner').classList.toggle('hidden', !editMode);
+  buildChecklist();
+}
 function buildChecklist() {
   const body = document.getElementById('checklist-body');
   body.innerHTML = '';
-  const tt = getAllTasksForDisplay();
+  const config = getTaskConfig();
+  const allTasks = getEffectiveTasks();
+  const dow = new Date().getDay();
+  const tasksToShow = editMode
+    ? allTasks.map(t => ({ ...t, skipped: t.days && !t.days.includes(dow) }))
+    : allTasks.filter(t => !config.hidden.includes(t.id)).map(t => ({ ...t, skipped: t.days && !t.days.includes(dow) }));
   const g = {};
-  SESSION_ORDER.forEach((s) => (g[s] = []));
-  tt.forEach((t) => (g[t.s] || []).push(t));
-  SESSION_ORDER.forEach((s) => {
-    if (!g[s].length) return;
+  SESSION_ORDER.forEach(s => (g[s] = []));
+  tasksToShow.forEach(t => (g[t.s] || []).push(t));
+  SESSION_ORDER.forEach(s => {
+    if (!g[s].length && !editMode) return;
     const l = document.createElement('div');
     l.className = 'session-label';
     l.textContent = SESSIONS[s];
     body.appendChild(l);
     const c = document.createElement('div');
-    c.className = 'card';
+    c.className = 'card sortable-group';
     c.style.margin = '0 16px';
-    g[s].forEach((task) => {
+    c.dataset.session = s;
+    g[s].forEach(task => {
+      const hidden = config.hidden.includes(task.id);
       const it = document.createElement('div');
-      if (task.skipped) {
+      if (editMode) {
+        it.className = 'task-item edit-mode' + (hidden ? ' task-hidden' : '');
+        it.dataset.id = task.id;
+        const daysHtml = task.days
+          ? '<span class="chip chip-days">' + task.days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(', ') + '</span>'
+          : '';
+        it.innerHTML =
+          '<div class="drag-handle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>' +
+          '<div class="task-content"><div class="task-name">' + esc(task.n) + '</div>' +
+          '<div class="task-detail">' + esc(task.d) + '</div>' +
+          '<span class="chip ' + (CHIP_CLASS[task.t] || 'chip-mon') + '">' + (CHIP_LABEL[task.t] || '') + '</span>' +
+          daysHtml +
+          (hidden ? '<span class="chip chip-hidden">Hidden</span>' : '') +
+          '</div>' +
+          '<div class="task-actions">' +
+          '<button class="task-action-btn task-edit-btn" data-id="' + esc(task.id) + '" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+          '<button class="task-action-btn task-hide-btn' + (hidden ? ' active' : '') + '" data-id="' + esc(task.id) + '" title="' + (hidden ? 'Show' : 'Hide') + '"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+          (hidden
+            ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+            : '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 01-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>') +
+          '</svg></button>' +
+          '<button class="task-action-btn task-del-btn" data-id="' + esc(task.id) + '" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+          '</div>';
+      } else if (task.skipped) {
         it.className = 'task-item skipped';
         it.innerHTML =
           '<div class="task-check"></div><div class="task-content"><div class="task-name">' +
-          esc(task.n) +
-          '</div><div class="task-skip-note">Not scheduled today</div></div>';
+          esc(task.n) + '</div><div class="task-skip-note">Not scheduled today</div></div>';
       } else {
         it.className = 'task-item' + (completions.has(task.id) ? ' done' : '');
         it.dataset.id = task.id;
         it.innerHTML =
           '<div class="task-check"></div><div class="task-content"><div class="task-name">' +
-          esc(task.n) +
-          '</div><div class="task-detail">' +
-          esc(task.d) +
-          '</div><span class="chip ' +
-          (CHIP_CLASS[task.t] || 'chip-mon') +
-          '">' +
-          (CHIP_LABEL[task.t] || '') +
-          '</span></div>';
+          esc(task.n) + '</div><div class="task-detail">' + esc(task.d) +
+          '</div><span class="chip ' + (CHIP_CLASS[task.t] || 'chip-mon') + '">' +
+          (CHIP_LABEL[task.t] || '') + '</span></div>';
         it.addEventListener('click', () => toggleTask(task.id, it));
       }
       c.appendChild(it);
     });
+    if (editMode) {
+      const addRow = document.createElement('div');
+      addRow.className = 'task-add-row';
+      addRow.innerHTML = '<button class="task-add-btn" data-session="' + s +
+        '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add task</button>';
+      c.appendChild(addRow);
+    }
     body.appendChild(c);
   });
+  if (editMode) {
+    body.querySelectorAll('.task-edit-btn').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openTaskEditor(btn.dataset.id); })
+    );
+    body.querySelectorAll('.task-hide-btn').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); toggleHideTask(btn.dataset.id); })
+    );
+    body.querySelectorAll('.task-del-btn').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); confirmDeleteTask(btn.dataset.id); })
+    );
+    body.querySelectorAll('.task-add-btn').forEach(btn =>
+      btn.addEventListener('click', () => openTaskEditor(null, btn.dataset.session))
+    );
+    initSortable();
+  }
 }
 
 /* ── Undo ── */
@@ -736,7 +852,7 @@ function updateProgress() {
 
 async function loadTodayChecklist() {
   const r = await DB.cachedGetByIndex('checklist', 'date', today());
-  const valid = new Set(TASKS.map((t) => t.id));
+  const valid = new Set(getEffectiveTasks().map((t) => t.id));
   completions = new Set(r.map((x) => x.taskId).filter((id) => valid.has(id)));
 }
 
@@ -786,6 +902,152 @@ async function renderStreak() {
   document.getElementById('streak-big').textContent = streak;
   document.getElementById('streak-best-text').textContent = 'Best streak: ' + best + ' days';
   return { summaries: sm, streak };
+}
+
+/* ── Task Editor (add/edit/delete/hide) ── */
+let editingTaskId = null;
+function openTaskEditor(taskId, defaultSession) {
+  editingTaskId = taskId;
+  const modal = document.getElementById('task-editor-modal');
+  const title = document.getElementById('task-editor-title');
+  const deleteBtn = document.getElementById('task-edit-delete');
+  const everyday = document.getElementById('task-edit-everyday');
+  const dayChecks = document.querySelectorAll('#task-edit-days input[type="checkbox"]');
+  if (taskId) {
+    title.textContent = 'Edit Task';
+    deleteBtn.style.display = 'block';
+    const allTasks = getEffectiveTasks();
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    document.getElementById('task-edit-name').value = task.n;
+    document.getElementById('task-edit-desc').value = task.d || '';
+    document.getElementById('task-edit-session').value = task.s;
+    document.getElementById('task-edit-cat').value = task.t;
+    if (!task.days) {
+      everyday.checked = true;
+      dayChecks.forEach(cb => { cb.checked = false; cb.disabled = true; });
+    } else {
+      everyday.checked = false;
+      dayChecks.forEach(cb => { cb.disabled = false; cb.checked = task.days.includes(parseInt(cb.value)); });
+    }
+  } else {
+    title.textContent = 'Add Task';
+    deleteBtn.style.display = 'none';
+    document.getElementById('task-edit-name').value = '';
+    document.getElementById('task-edit-desc').value = '';
+    document.getElementById('task-edit-session').value = defaultSession || 'morning';
+    document.getElementById('task-edit-cat').value = 'med';
+    everyday.checked = true;
+    dayChecks.forEach(cb => { cb.checked = false; cb.disabled = true; });
+  }
+  modal.classList.add('visible');
+}
+function closeTaskEditor() {
+  document.getElementById('task-editor-modal').classList.remove('visible');
+  editingTaskId = null;
+}
+function saveTaskEdit() {
+  const name = document.getElementById('task-edit-name').value.trim();
+  if (!name) return;
+  const desc = document.getElementById('task-edit-desc').value.trim();
+  const session = document.getElementById('task-edit-session').value;
+  const cat = document.getElementById('task-edit-cat').value;
+  const everyday = document.getElementById('task-edit-everyday').checked;
+  let days = null;
+  if (!everyday) {
+    days = [];
+    document.querySelectorAll('#task-edit-days input[type="checkbox"]').forEach(cb => {
+      if (cb.checked) days.push(parseInt(cb.value));
+    });
+    if (!days.length) days = null;
+  }
+  const config = getTaskConfig();
+  if (editingTaskId) {
+    const isDefault = DEFAULT_TASKS.some(t => t.id === editingTaskId);
+    if (isDefault) {
+      const editObj = { n: name, d: desc, s: session, t: cat };
+      if (days) editObj.days = days;
+      config.edits[editingTaskId] = editObj;
+    } else {
+      const idx = config.customTasks.findIndex(t => t.id === editingTaskId);
+      if (idx !== -1) {
+        config.customTasks[idx] = { id: editingTaskId, s: session, n: name, d: desc, t: cat };
+        if (days) config.customTasks[idx].days = days;
+      }
+    }
+  } else {
+    const newTask = { id: 'custom-' + Date.now(), s: session, n: name, d: desc, t: cat };
+    if (days) newTask.days = days;
+    config.customTasks.push(newTask);
+  }
+  saveTaskConfig(config);
+  closeTaskEditor();
+  buildChecklist();
+  updateProgress();
+}
+function toggleHideTask(taskId) {
+  const config = getTaskConfig();
+  const idx = config.hidden.indexOf(taskId);
+  if (idx === -1) config.hidden.push(taskId);
+  else config.hidden.splice(idx, 1);
+  saveTaskConfig(config);
+  buildChecklist();
+  updateProgress();
+}
+function confirmDeleteTask(taskId) {
+  const allTasks = getEffectiveTasks();
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return;
+  if (!confirm('Delete "' + task.n + '"?')) return;
+  const config = getTaskConfig();
+  const isDefault = DEFAULT_TASKS.some(t => t.id === taskId);
+  if (isDefault) {
+    config.deleted.push(taskId);
+    delete config.edits[taskId];
+  } else {
+    config.customTasks = config.customTasks.filter(t => t.id !== taskId);
+  }
+  config.hidden = config.hidden.filter(id => id !== taskId);
+  // Remove from order
+  SESSION_ORDER.forEach(s => {
+    if (config.order[s]) config.order[s] = config.order[s].filter(id => id !== taskId);
+  });
+  saveTaskConfig(config);
+  buildChecklist();
+  updateProgress();
+}
+function resetTasksToDefault() {
+  if (!confirm('Reset all tasks to default? Custom tasks will be removed and all edits undone.')) return;
+  localStorage.removeItem('lc_task_config');
+  buildChecklist();
+  updateProgress();
+}
+
+/* ── Drag & Drop (SortableJS) ── */
+let sortableInstances = [];
+function initSortable() {
+  sortableInstances.forEach(s => s.destroy());
+  sortableInstances = [];
+  if (typeof Sortable === 'undefined') return;
+  document.querySelectorAll('.sortable-group').forEach(el => {
+    const s = new Sortable(el, {
+      handle: '.drag-handle',
+      animation: 200,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      filter: '.task-add-row',
+      onEnd() {
+        const session = el.dataset.session;
+        const ids = [];
+        el.querySelectorAll('.task-item[data-id]').forEach(item => ids.push(item.dataset.id));
+        const config = getTaskConfig();
+        config.order[session] = ids;
+        saveTaskConfig(config);
+      }
+    });
+    sortableInstances.push(s);
+  });
 }
 
 /* ── SpO2 ── */
@@ -1477,52 +1739,97 @@ fbMessaging.onMessage(async (payload) => {
 });
 
 
-/* ── Notification Schedule ── */
-const NOTIF_SCHEDULE = [
-  { time: '06:30 AM', title: 'Morning Routine', body: 'SpO2 check, postural drainage, nasal saline wash' },
-  { time: '07:00 AM', title: 'Core & Breakfast', body: 'Belly breathing + pelvic tilts, then high-calorie breakfast' },
-  { time: '07:30 AM', title: 'Morning Walk', body: '20 min walk (pursed-lip breathing) + doorway chest stretch' },
-  {
-    time: '09:00 AM',
-    title: 'Morning Medication',
-    body: 'Forocot G morning puff \u2014 wait 10\u201315 min. Rinse mouth after.'
-  },
-  { time: '10:30 AM', title: 'Mid-Morning Snack', body: 'Nuts + groundnut chikki + coconut water \u2014 never skip!' },
-  { time: '01:00 PM', title: 'Lunch Time', body: 'Biggest meal \u2014 rice + sambar + dal + curd + ghee (650 kcal)' },
-  {
-    time: '01:30 PM',
-    title: 'Post-Lunch Check',
-    body: 'Log SpO2 reading + 30 min rest. Sit upright, don\u2019t lie flat.'
-  },
-  { time: '03:00 PM', title: 'Hydration Check', body: 'Target 2.5L by 4 PM \u2014 warm or room temp water only' },
-  { time: '04:00 PM', title: 'Afternoon Tasks', body: 'Afternoon snack + chin tuck exercises (10 reps \u00D7 3)' },
-  { time: '06:00 PM', title: 'Evening Routine', body: 'Aerobika 5 cycles + core + strength exercises' },
-  { time: '06:30 PM', title: 'Evening Walk', body: '20\u201330 min walk, then dinner before 8 PM' },
-  { time: '07:30 PM', title: 'Dinner Time', body: 'Eat before 8 PM \u2014 ragi roti + kurma + dal + ghee' },
-  { time: '08:15 PM', title: 'Post-Dinner Walk', body: '10 min walk. Don\u2019t lie flat for 45 min after eating.' },
-  {
-    time: '09:00 PM',
-    title: 'Night Medication',
-    body: 'Forocot G night puff \u2014 wait 10\u201315 min. Rinse mouth after.'
-  },
-  { time: '10:00 PM', title: 'Bedtime', body: 'Huff cough, clean devices, sleep \u2014 2 pillows, right side.' }
+/* ── Notification Schedule (customizable times) ── */
+const DEFAULT_NOTIF_SCHEDULE = [
+  { key: '06:30', title: 'Morning Routine', body: 'SpO2 check, postural drainage, nasal saline wash' },
+  { key: '07:00', title: 'Core & Breakfast', body: 'Belly breathing + pelvic tilts, then high-calorie breakfast' },
+  { key: '07:30', title: 'Morning Walk', body: '20 min walk (pursed-lip breathing) + doorway chest stretch' },
+  { key: '09:00', title: 'Morning Medication', body: 'Forocot G morning puff \u2014 wait 10\u201315 min. Rinse mouth after.' },
+  { key: '10:30', title: 'Mid-Morning Snack', body: 'Nuts + groundnut chikki + coconut water \u2014 never skip!' },
+  { key: '13:00', title: 'Lunch Time', body: 'Biggest meal \u2014 rice + sambar + dal + curd + ghee (650 kcal)' },
+  { key: '13:30', title: 'Post-Lunch Check', body: 'Log SpO2 reading + 30 min rest. Sit upright, don\u2019t lie flat.' },
+  { key: '15:00', title: 'Hydration Check', body: 'Target 2.5L by 4 PM \u2014 warm or room temp water only' },
+  { key: '16:00', title: 'Afternoon Tasks', body: 'Afternoon snack + chin tuck exercises (10 reps \u00D7 3)' },
+  { key: '18:00', title: 'Evening Routine', body: 'Aerobika 5 cycles + core + strength exercises' },
+  { key: '18:30', title: 'Evening Walk', body: '20\u201330 min walk, then dinner before 8 PM' },
+  { key: '19:30', title: 'Dinner Time', body: 'Eat before 8 PM \u2014 ragi roti + kurma + dal + ghee' },
+  { key: '20:15', title: 'Post-Dinner Walk', body: '10 min walk. Don\u2019t lie flat for 45 min after eating.' },
+  { key: '21:00', title: 'Night Medication', body: 'Forocot G night puff \u2014 wait 10\u201315 min. Rinse mouth after.' },
+  { key: '22:00', title: 'Bedtime', body: 'Huff cough, clean devices, sleep \u2014 2 pillows, right side.' }
 ];
-
+function fmt12h(t24) {
+  let [h, m] = t24.split(':').map(Number);
+  const p = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' ' + p;
+}
+function roundTo15(t24) {
+  let [h, m] = t24.split(':').map(Number);
+  m = Math.round(m / 15) * 15;
+  if (m === 60) { m = 0; h = (h + 1) % 24; }
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+function getNotifSchedule() {
+  const c = localStorage.getItem('lc_notif_schedule');
+  if (c) { try { return JSON.parse(c); } catch (_) {} }
+  return DEFAULT_NOTIF_SCHEDULE.map(s => ({ ...s }));
+}
+function saveNotifSchedule(schedule) {
+  localStorage.setItem('lc_notif_schedule', JSON.stringify(schedule));
+  if (!currentUid) return;
+  const fsSchedule = {};
+  schedule.forEach(s => { fsSchedule[s.key] = { title: s.title, body: s.body }; });
+  fsDb.collection(userCol('settings')).doc('notifSchedule').set({
+    schedule: fsSchedule,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(e => console.warn('Failed to save notif schedule:', e));
+}
+async function loadNotifSchedule() {
+  if (!currentUid) return;
+  try {
+    const doc = await fsDb.collection(userCol('settings')).doc('notifSchedule').get();
+    if (doc.exists && doc.data().schedule) {
+      const fsSchedule = doc.data().schedule;
+      const schedule = DEFAULT_NOTIF_SCHEDULE.map(s => {
+        const match = Object.entries(fsSchedule).find(([, v]) => v.title === s.title);
+        if (match) return { key: match[0], title: match[1].title, body: match[1].body };
+        return { ...s };
+      });
+      localStorage.setItem('lc_notif_schedule', JSON.stringify(schedule));
+    }
+  } catch (e) { console.warn('Failed to load notif schedule:', e); }
+}
 function renderNotifSchedule() {
   const el = document.getElementById('notif-schedule');
   if (!el) return;
+  const schedule = getNotifSchedule();
   el.innerHTML =
-    '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Schedule (IST) \u2014 15 daily reminders</div>' +
-    NOTIF_SCHEDULE.map(
-      (s) =>
-        '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="min-width:68px;font-size:12px;font-weight:600;color:var(--pri)">' +
-        esc(s.time) +
-        '</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">' +
-        esc(s.title) +
-        '</div><div style="font-size:11px;color:var(--text-3);line-height:1.4">' +
-        esc(s.body) +
-        '</div></div></div>'
-    ).join('');
+    '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Schedule (IST) \u2014 tap time to change</div>' +
+    schedule.map((s, i) =>
+      '<div class="notif-sched-row">' +
+      '<input type="time" class="notif-time-input" data-idx="' + i + '" value="' + esc(s.key) + '" step="900" />' +
+      '<div class="notif-sched-text"><div class="notif-sched-title">' + esc(s.title) +
+      '</div><div class="notif-sched-body">' + esc(s.body) + '</div></div></div>'
+    ).join('') +
+    '<button class="btn-secondary" id="reset-notif-btn" style="margin-top:12px;font-size:12px;padding:8px 16px">Reset to default times</button>';
+  el.querySelectorAll('.notif-time-input').forEach(input => {
+    input.addEventListener('change', function () {
+      const idx = parseInt(this.dataset.idx);
+      const sched = getNotifSchedule();
+      sched[idx].key = roundTo15(this.value);
+      this.value = sched[idx].key;
+      saveNotifSchedule(sched);
+    });
+  });
+  const resetBtn = document.getElementById('reset-notif-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      localStorage.removeItem('lc_notif_schedule');
+      saveNotifSchedule(DEFAULT_NOTIF_SCHEDULE.map(s => ({ ...s })));
+      renderNotifSchedule();
+    });
+  }
 }
 
 /* ── Settings ── */
@@ -1664,7 +1971,9 @@ async function exportData() {
     spo2: await DB.getAll('spo2'),
     meds: await DB.getAll('meds'),
     dailylog: await DB.getAll('dailylog'),
-    customMeds: localStorage.getItem('lc_custom_meds') || null
+    customMeds: localStorage.getItem('lc_custom_meds') || null,
+    taskConfig: localStorage.getItem('lc_task_config') || null,
+    notifSchedule: localStorage.getItem('lc_notif_schedule') || null
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -1743,6 +2052,18 @@ async function importData(input) {
       await batch.commit();
     }
     if (validCustomMeds) localStorage.setItem('lc_custom_meds', validCustomMeds);
+    if (data.taskConfig) {
+      try {
+        const tc = JSON.parse(data.taskConfig);
+        if (tc && typeof tc === 'object') localStorage.setItem('lc_task_config', data.taskConfig);
+      } catch (_) {}
+    }
+    if (data.notifSchedule) {
+      try {
+        const ns = JSON.parse(data.notifSchedule);
+        if (Array.isArray(ns)) localStorage.setItem('lc_notif_schedule', data.notifSchedule);
+      } catch (_) {}
+    }
     location.reload();
   } catch (e) {
     showSpo2Error('Import failed: ' + e.message);
@@ -1803,7 +2124,8 @@ async function startApp() {
   renderReflection();
   renderReflectionHistory();
   if (validCompletionCount() > 0) await saveStreak();
-  // Refresh FCM token silently
+  // Load custom notification schedule + refresh FCM token silently
+  loadNotifSchedule();
   refreshFCMToken();
 }
 /* ── Event listeners (no inline handlers) ── */
@@ -1827,6 +2149,18 @@ document.getElementById('add-med-btn').addEventListener('click', addCustomMed);
 document.getElementById('signout-btn').addEventListener('click', signOut);
 document.getElementById('update-btn').addEventListener('click', function () { location.reload(); });
 document.getElementById('install-close-btn').addEventListener('click', dismissInstall);
+document.getElementById('edit-routine-btn').addEventListener('click', toggleEditMode);
+document.getElementById('reset-defaults-btn').addEventListener('click', resetTasksToDefault);
+document.getElementById('task-editor-close').addEventListener('click', closeTaskEditor);
+document.getElementById('task-edit-save').addEventListener('click', saveTaskEdit);
+document.getElementById('task-edit-delete').addEventListener('click', function () { confirmDeleteTask(editingTaskId); closeTaskEditor(); });
+document.getElementById('task-editor-modal').addEventListener('click', function (e) { if (e.target === this) closeTaskEditor(); });
+document.getElementById('task-edit-everyday').addEventListener('change', function () {
+  document.querySelectorAll('#task-edit-days input[type="checkbox"]').forEach(cb => {
+    cb.disabled = this.checked;
+    if (this.checked) cb.checked = false;
+  });
+});
 
 applyThemeFromStorage();
 initSW();

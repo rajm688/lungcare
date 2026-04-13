@@ -501,6 +501,235 @@ body {
   font-style: italic;
 }
 
+/* ── Edit Routine Button ── */
+.edit-routine-btn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-2);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.edit-routine-btn:active {
+  background: var(--surface-2);
+}
+.edit-routine-btn.active {
+  background: var(--pri);
+  border-color: var(--pri);
+  color: white;
+}
+
+/* ── Edit Mode Banner ── */
+.edit-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  margin: 0 16px;
+  background: var(--pri-l);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pri-d);
+}
+.edit-mode-banner.hidden {
+  display: none;
+}
+.reset-defaults-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--pri);
+  color: var(--pri-d);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.reset-defaults-btn:active {
+  background: var(--pri);
+  color: white;
+}
+
+/* ── Edit Mode Task Items ── */
+.task-item.edit-mode {
+  cursor: default;
+  padding: 12px 14px;
+  gap: 10px;
+}
+.task-item.edit-mode:active {
+  background: var(--surface);
+}
+.task-item.task-hidden {
+  opacity: 0.45;
+}
+.task-item.task-hidden .task-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-3);
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: flex-start;
+  margin-top: 2px;
+}
+.task-action-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.task-action-btn:active {
+  background: var(--surface-3);
+}
+.task-edit-btn:hover,
+.task-edit-btn:active {
+  color: var(--pri);
+  border-color: var(--pri);
+}
+.task-hide-btn:hover,
+.task-hide-btn:active {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+.task-hide-btn.active {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: rgba(245, 158, 11, 0.08);
+}
+.task-del-btn:hover,
+.task-del-btn:active {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ── Add Task Row ── */
+.task-add-row {
+  padding: 10px 14px;
+}
+.task-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--pri-d);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.task-add-btn:active {
+  background: var(--pri-l);
+  border-color: var(--pri);
+}
+
+/* ── Day Chips / Schedule Picker ── */
+.chip-days {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--pri-d);
+}
+.chip-hidden {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warn);
+}
+.everyday-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.everyday-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--pri);
+}
+.days-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.day-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.day-chip:has(input:checked) {
+  background: var(--pri-l);
+  border-color: var(--pri);
+  color: var(--pri-d);
+}
+.day-chip:has(input:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.day-chip input[type="checkbox"] {
+  display: none;
+}
+
+/* ── SortableJS Drag States ── */
+.sortable-ghost {
+  opacity: 0.3;
+  background: var(--pri-l);
+}
+.sortable-chosen {
+  background: var(--surface-2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius);
+}
+.sortable-drag {
+  opacity: 0.95;
+}
+
 /* SpO2 */
 .spo2-entry {
   padding: 20px;
@@ -1460,6 +1689,49 @@ body {
   top: 2px;
   left: 2px;
   background: white;
+}
+
+/* ── Notification Schedule Rows ── */
+.notif-sched-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.notif-time-input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--pri-d);
+  background: var(--surface);
+  outline: none;
+  flex-shrink: 0;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.notif-time-input:focus {
+  border-color: var(--pri);
+  box-shadow: 0 0 0 1px var(--pri);
+}
+.notif-sched-text {
+  flex: 1;
+  min-width: 0;
+}
+.notif-sched-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.notif-sched-body {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.4;
 }
 
 .med-add-form {

@@ -5,8 +5,8 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-// Task schedule — IST times mapped to notification content
-const SCHEDULE = {
+// Default task schedule — IST times mapped to notification content
+const DEFAULT_SCHEDULE = {
   '06:30': {
     title: 'Morning Routine',
     body: 'SpO2 check, postural drainage, nasal saline wash'
@@ -79,8 +79,7 @@ exports.sendReminders = functionsV1.pubsub
     const m = String(Math.floor(now.getMinutes() / 15) * 15).padStart(2, '0');
     const key = `${h}:${m}`;
 
-    const reminder = SCHEDULE[key];
-    if (!reminder) return null;
+    const defaultReminder = DEFAULT_SCHEDULE[key];
 
     const snapshot = await db.collection('devices').where('uid', '!=', null).get();
     if (snapshot.empty) {
@@ -88,42 +87,67 @@ exports.sendReminders = functionsV1.pubsub
       return null;
     }
 
-    console.log(`Found ${snapshot.size} registered device(s) for reminder ${key}`);
+    console.log(`Found ${snapshot.size} registered device(s) for time slot ${key}`);
 
-    // Group by uid so each user only gets one notification even with multiple devices
-    const sendPromises = snapshot.docs.map(async (doc) => {
+    // Group devices by uid
+    const userDevices = {};
+    snapshot.docs.forEach((doc) => {
       const data = doc.data();
-      const token = data.token;
-      if (!token || !data.uid) { console.log(`Skipping ${doc.id}: no token or uid`); return; }
+      if (!data.token || !data.uid) return;
+      if (!userDevices[data.uid]) userDevices[data.uid] = [];
+      userDevices[data.uid].push({ ref: doc.ref, id: doc.id, token: data.token });
+    });
 
+    // Process each user: check for custom schedule, then send
+    const userPromises = Object.entries(userDevices).map(async ([uid, devices]) => {
+      let reminder = defaultReminder;
       try {
-        await messaging.send({
-          token,
-          data: {
-            title: reminder.title,
-            body: reminder.body,
-            tag: 'lungcare-' + key.replace(':', ''),
-            icon: 'https://lungcare-721be.web.app/icons/icon-192.svg'
-          },
-          webpush: {
-            headers: { Urgency: 'high', TTL: '300' }
+        const schedDoc = await db.doc(`users/${uid}/settings/notifSchedule`).get();
+        if (schedDoc.exists && schedDoc.data().schedule) {
+          const custom = schedDoc.data().schedule;
+          if (custom[key]) {
+            reminder = custom[key];
+          } else {
+            // User has custom schedule but no reminder at this time
+            reminder = null;
           }
-        });
-        console.log(`Sent reminder to ${doc.id}: ${key} - ${reminder.title}`);
-      } catch (err) {
-        console.error(`FCM send error for ${doc.id}:`, err.code, err.message);
-        if (
-          err.code === 'messaging/registration-token-not-registered' ||
-          err.code === 'messaging/invalid-registration-token'
-        ) {
-          await doc.ref.delete();
-          console.log(`Deleted invalid token: ${doc.id}`);
+        }
+      } catch (e) {
+        console.warn(`Error reading custom schedule for ${uid}:`, e.message);
+      }
+
+      if (!reminder) return;
+
+      for (const device of devices) {
+        try {
+          await messaging.send({
+            token: device.token,
+            data: {
+              title: reminder.title,
+              body: reminder.body,
+              tag: 'lungcare-' + key.replace(':', ''),
+              icon: 'https://lungcare-721be.web.app/icons/icon-192.svg'
+            },
+            webpush: {
+              headers: { Urgency: 'high', TTL: '300' }
+            }
+          });
+          console.log(`Sent reminder to ${device.id}: ${key} - ${reminder.title}`);
+        } catch (err) {
+          console.error(`FCM send error for ${device.id}:`, err.code, err.message);
+          if (
+            err.code === 'messaging/registration-token-not-registered' ||
+            err.code === 'messaging/invalid-registration-token'
+          ) {
+            await device.ref.delete();
+            console.log(`Deleted invalid token: ${device.id}`);
+          }
         }
       }
     });
 
-    const results = await Promise.all(sendPromises);
-    console.log(`Reminder ${key} done — sent to ${snapshot.size} device(s)`);
+    await Promise.all(userPromises);
+    console.log(`Time slot ${key} done — processed ${Object.keys(userDevices).length} user(s)`);
     return null;
   });
 
